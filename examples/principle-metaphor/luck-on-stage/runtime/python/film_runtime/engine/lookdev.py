@@ -91,15 +91,16 @@ def background_stills(root: Path, storyboard: Path, prepared: dict, frames: list
     overlaps = [frame for frame in frames if frame not in result]
     if overlaps:
         with LocalServer(root, cors=True) as server:
-            bundle = remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / "bundle",
-                                     storyboard_path=storyboard,
-                                     content_root=root.parent, workspace_root=root.parent, cache=True)
-            for frame in overlaps:
-                props = still_props(root, prepared, captured, frame, server.base_url + "/")
-                props["subtitleCues"] = []
-                target = work / f"background-{frame:06d}.png"
-                _compose_still(work, bundle.path, props, target, frame, 1)
-                result[frame] = target
+            with remotion.bundle(
+                web_dir=remotion.web_dir(), out_dir=work / "bundle", storyboard_path=storyboard,
+                content_root=root.parent, workspace_root=root.parent, cache=True,
+            ) as bundle:
+                for frame in overlaps:
+                    props = still_props(root, prepared, captured, frame, server.base_url + "/")
+                    props["subtitleCues"] = []
+                    target = work / f"background-{frame:06d}.png"
+                    _compose_still(work, bundle.path, props, target, frame, 1)
+                    result[frame] = target
     return result
 
 
@@ -132,14 +133,15 @@ def render_stills(root: Path, project: dict, frames: list[int], destination: Pat
         native = work / "native"
         native.mkdir()
         captured = native_stills(root, prepared, frames, native, scale=scale)
-        bundle = remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / "bundle",
-                                 storyboard_path=entry, content_root=root.parent,
-                                 workspace_root=root.parent, cache=True)
-        for frame in frames:
-            target = destination / f"still-{frame:06d}.png"
-            props = still_props(root, prepared, captured, frame, server.base_url + "/")
-            _compose_still(work, bundle.path, props, target, frame, scale)
-            produced.append(target)
+        with remotion.bundle(
+            web_dir=remotion.web_dir(), out_dir=work / "bundle", storyboard_path=entry,
+            content_root=root.parent, workspace_root=root.parent, cache=True,
+        ) as bundle:
+            for frame in frames:
+                target = destination / f"still-{frame:06d}.png"
+                props = still_props(root, prepared, captured, frame, server.base_url + "/")
+                _compose_still(work, bundle.path, props, target, frame, scale)
+                produced.append(target)
     manifest = {"schemaVersion": 1, "preparedFingerprint": prepared["preparedFingerprint"],
                 "frames": frames, "stillScale": scale,
                 "stills": {str(frame): path.relative_to(root).as_posix()

@@ -13,6 +13,7 @@ IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tif", ".ti
 SIDECAR_SUFFIXES = (".srt", ".provenance.json", ".performance.json")
 _TEMP_DIR = re.compile(r"^(?:a2v|m2v|debug|tmp|render)(?:-|$)", re.IGNORECASE)
 _KNOWN_REGENERABLE_DIRS = {"previews", "qa", "bench", "review-contact-sheets"}
+_PREPARED_MEDIA_DIRS = {"media", "code-cache"}
 
 
 def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, preserve_previews: bool = False,
@@ -73,7 +74,7 @@ def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, 
             keep.update(_visual_evidence(outputs))
             # 制作门、隔离评审、目标关键帧和基线有各自保留契约，普通交付清理不能抢先删除。
             # 目标关键帧是独立的静态美术证据，不是可由成片重放得到的普通静帧。
-            # 基线媒体仅由显式 baseline prune 在引用检查与写锁下删除。
+            # 存量基线由经核实的清单整组清理，普通导出避免提前删掉其中的独立评审原件。
             for name in ('production', 'review-pack', 'baselines', 'design'):
                 directory = outputs / name
                 if directory.is_symlink():
@@ -101,11 +102,10 @@ def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, 
             _unlink(financial_preview_record, failures)
 
     # Old final videos and their known output sidecars can occur at any depth,
-    # including history/. Never recurse into prepared media, which is render input.
+    # including history/. Render inputs and recording workspaces own their cleanup.
     candidates = list(_iter_output_files(outputs, failures))
     for path in candidates:
-        if (_inside_named_dir(path, outputs, "media") or _inside_named_dir(path, outputs, "code-cache")
-                or (preserve_previews and _inside_named_dir(path, outputs, "previews"))):
+        if preserve_previews and _inside_named_dir(path, outputs, "previews"):
             continue
         if path in keep:
             continue
@@ -118,14 +118,16 @@ def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, 
         elif path.name.endswith((".provenance.json", ".performance.json")) or path.suffix.lower() in {".srt", *IMAGE_SUFFIXES}:
             _unlink(path, failures)
 
-    # Remove directories emptied by media cleanup, but preserve media and outputs.
+    # Check directories bottom-up without walking into a concurrent recording.
+    directories = []
     for directory, child_dirs, _ in os.walk(
-        outputs, topdown=False, followlinks=False,
+        outputs, followlinks=False,
         onerror=lambda exc: failures.append(f"无法遍历输出目录 {exc.filename}: {exc}"),
     ):
-        target = Path(directory)
-        if target == outputs or _inside_named_dir(target / "_", outputs, "media"):
-            continue
+        child_dirs[:] = [name for name in child_dirs if name.lower() not in _PREPARED_MEDIA_DIRS]
+        if Path(directory) != outputs:
+            directories.append(Path(directory))
+    for target in reversed(directories):
         try:
             target.rmdir()
         except OSError:
@@ -138,13 +140,13 @@ def _iter_output_files(outputs: Path, failures: list[str]):
         outputs, topdown=True, followlinks=False,
         onerror=lambda exc: failures.append(f"无法遍历输出目录 {exc.filename}: {exc}"),
     ):
-        # Prepared media is a render input, and symlinks must never be traversed.
+        # Leave render inputs and active recording workspaces to their own lifecycle.
         safe_children = []
         for name in child_dirs:
             child = Path(directory) / name
             if child.is_symlink():
                 failures.append(f"符号链接目录未递归清理：{child}")
-            elif name.lower() != "media":
+            elif name.lower() not in _PREPARED_MEDIA_DIRS:
                 safe_children.append(name)
         child_dirs[:] = safe_children
         for name in files:

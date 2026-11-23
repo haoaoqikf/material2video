@@ -24,7 +24,7 @@
     {
       "id": "revision",
       "guide": "references/video-revision.md",
-      "when": "修改已有作品，保留基线并定位影响"
+      "when": "修改已有作品，核对当前交付并定位影响"
     },
     {
       "id": "review",

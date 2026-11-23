@@ -12,7 +12,7 @@ from PIL import Image, PngImagePlugin
 from m2v.core.delivery import outputs, digest
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_project
-from m2v.production import ledger, reviews, issues, baselines
+from m2v.production import ledger, reviews, issues
 from m2v.production.storage import read, write, receipt, local, locked
 
 
@@ -466,48 +466,35 @@ def test_history_corruption_blocks_new_cycle_without_rewriting_old_files(work):
     assert path.read_bytes() == original + b"{broken"
 
 
-def test_baseline_references_protect_and_invalid_records_block_prune(work):
+def test_status_keeps_historical_baseline_events_without_projecting_retention(work, capsys):
+    from m2v.cli import main
+
     root, manifest = work
-    media = outputs(root) / "video.mp4"
-    media.write_bytes(b"baseline")
-    versions = [
-        baselines.create(root, manifest, reason="compare", files=["video.mp4"])
-        for _ in range(3)
-    ]
-    write(
-        outputs(root) / "production/comparisons.json",
-        [{"status": "active", "versionRefs": [v["id"] for v in versions]}],
-    )
-    assert baselines.prune(root, manifest)["pruned"] == []
-    write(outputs(root) / "production/comparisons.json", [])
-    assert baselines.prune(root, manifest)["fullVersions"] == 3
-    write(
-        outputs(root) / "production/comparisons.json",
-        [{"status": "active", "versionRefs": ["unknown"]}],
-    )
-    with pytest.raises(M2VError, match="未知"):
-        baselines.prune(root, manifest)
+    previous = outputs(root) / "baselines" / "old-version" / "manifest.json"
+    previous.parent.mkdir(parents=True)
+    previous.write_bytes(b"retired snapshot")
+    ledger.append(root, manifest, "baseline-created", data={"id": "old-version", "reset": True})
+    history = ledger.directory(root) / "history.jsonl"
+    original = history.read_bytes()
+
+    assert main(["status", "--project", str(root), "--history"]) == 0
+    state = json.loads(capsys.readouterr().out)["production"]
+
+    assert "baselines" not in state
+    assert not state["diagnostics"]
+    assert any(event["type"] == "baseline-created" for event in ledger.history(root)[0])
+    assert history.read_bytes() == original
+    assert previous.read_bytes() == b"retired snapshot"
 
 
-def test_baseline_preserves_and_prunes_deep_report_paths(work):
-    root, manifest = work
-    base = outputs(root)
-    (base / "video.mp4").write_bytes(b"baseline")
-    report_path = ledger.directory(root) / "reports" / ("a" * 64 + ".json")
-    # 让源路径仍可用普通 Win32 IO，嵌入基线 records 后才跨过 260；
-    # Linux 的临时目录通常更短，因此按实际路径长度补一个目录层。
-    if len(str(report_path.resolve())) < 230:
-        report_path = report_path.parent / ("x" * max(1, 229 - len(str(report_path.resolve())))) / report_path.name
-    write(report_path, {"evidence": "deep report"})
-    versions = [baselines.create(root, manifest, reason="compare", files=["video.mp4"])
-                for _ in range(3)]
-    directory = baselines._baseline_directory(root) / versions[1]["id"]
-    saved = directory / "records" / report_path.relative_to(base)
-    assert len(str(saved)) > 260
-    assert digest(saved) == digest(report_path)
-    # 降级会重验每条记录；覆盖创建之外的长路径读取和恢复清理。
-    assert versions[1]["id"] in baselines.prune(root, manifest)["pruned"]
-    assert saved.is_file()
+def test_baseline_command_is_retired(capsys):
+    from m2v.cli import _parser
+
+    parser = _parser()
+    with pytest.raises(SystemExit) as error:
+        parser.parse_args(["baseline", "create", "--project", "unused"])
+    assert error.value.code == 2
+    assert "invalid choice" in capsys.readouterr().err
 
 
 def test_path_safety_and_writer_lock(work):
@@ -521,31 +508,6 @@ def test_path_safety_and_writer_lock(work):
     history_path.write_bytes(history_path.read_bytes().rstrip(b"\n"))
     ledger.append(root, manifest, "render-request")
     assert len(ledger.history(root)[0]) == 2 and not ledger.history(root)[1]
-
-
-def test_baseline_cleanup_resumes_after_interruption(work, monkeypatch):
-    root, manifest = work
-    out = outputs(root)
-    (out / "video.mp4").write_bytes(b"baseline")
-    versions = [
-        baselines.create(root, manifest, reason="compare", files=["video.mp4"])
-        for _ in range(3)
-    ]
-    original = Path.unlink
-
-    def interrupt(path, *args, **kwargs):
-        if versions[1]["id"] in str(path) and path.suffix == ".mp4":
-            raise OSError("模拟删除中断")
-        return original(path, *args, **kwargs)
-
-    monkeypatch.setattr(Path, "unlink", interrupt)
-    with pytest.raises(OSError):
-        baselines.prune(root, manifest)
-    target = out / "baselines" / versions[1]["id"] / "manifest.json"
-    assert read(target)["pendingDelete"]
-    monkeypatch.setattr(Path, "unlink", original)
-    baselines.prune(root, manifest)
-    assert read(target)["prunedAt"] and read(target)["pendingDelete"] == []
 
 
 @pytest.mark.media
@@ -576,14 +538,20 @@ def test_real_video_window_frames_and_metadata(tmp_path):
         ]
     )
     r = request()
-    r["sources"] = []
-    r.update(purpose="process", reviewType="blind", blindReason="核对完整状态变化与身份连续")
+    r.update(sources=[], displaySizes=[393, 160], purpose="process",
+             reviewType="blind", blindReason="核对完整状态变化与身份连续")
     r["items"] = [dict(id="window-1", path="clip.mp4", window=[3, 9], dynamic=True)]
     pack = reviews.package(root, manifest, r)
     data = read(pack / "manifest.json")
     item = data["items"][0]
     assert [x["frame"] for x in item["sequence"]] == list(range(3, 9))
+    sealed_paths = [record["path"] for record in data["files"]]
+    for frame in item["sequence"]:
+        phone = Path(frame["path"]).with_suffix("").as_posix() + "-393.png"
+        assert frame["displayPaths"] == [phone, frame["path"]]
+        assert sealed_paths.count(frame["path"]) == 1
     assert len(list((pack / "evidence-0000").glob("*-393.png"))) == 6
+    assert not list((pack / "evidence-0000").glob("*-160.png"))
     assert ledger.evidence_valid_at(pack, data["files"])
     ffmpeg(["-i", str(pack / item["path"]), "-map", "0:a:0", "-f", "null", "-"])
     r["items"][0]["window"] = [0, 60]
@@ -604,11 +572,14 @@ def test_real_image_metadata_removed(tmp_path):
     Image.new("RGB", (160, 90), "blue").save(out / "trial.png", pnginfo=metadata)
     Image.new("RGB", (160, 90), "red").save(out / "target.png", pnginfo=metadata)
     r = request()
-    r["sources"] = []
+    r.update(sources=[], displaySizes=[160, 393])
     r["references"] = ["target.png"]
     r["conditions"] = ["主体轮廓及色彩与目标对应"]
     pack = reviews.package(root, manifest, r)
-    with Image.open(pack / "evidence-0000.png") as image:
+    frame = read(pack / "manifest.json")["items"][0]["sequence"][0]
+    assert frame["displayPaths"] == [frame["path"], "evidence-0000-393.png"]
+    assert not (pack / "evidence-0000-160.png").exists()
+    with Image.open(pack / frame["path"]) as image:
         assert "Author" not in image.info
     assert not list(pack.glob("target-*")) and not (pack / "conditions.json").exists()
     blind = reviews.import_report(root, manifest, report((root, manifest), pack))

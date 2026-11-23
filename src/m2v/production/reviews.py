@@ -25,7 +25,7 @@ from .model import (
     now,
 )
 from .storage import local, read, receipt, write
-from .evidence_images import derive_images
+from .evidence_images import derive_images, reuse_native_displays
 
 MEDIA = {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm", ".wav", ".mp3"}
 VIDEO = {".mp4", ".webm"}
@@ -200,10 +200,11 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
     items, files = [], []
     if review_type == 'consistency':
         prior_directory = local(base, prior['packPath']).parent
-        items = prior_pack['items']
+        items, redundant = reuse_native_displays(prior_pack)
+        redundant.add('questions.md')
         # 同轮输入完全相同，复用已核验净化媒体；独立复制防止一包修改污染另一包。
         for record in prior_pack['files']:
-            if record['path'] == 'questions.md':
+            if record['path'] in redundant:
                 continue
             source = local(prior_directory, record['path'])
             destination = local(target, record['path'], exists=False)
@@ -263,17 +264,13 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
                 raise M2VError("有序帧未完整提取，请核对实际帧率与窗口")
             sequence = []
             for frame, image in zip(frames, extracted):
-                derived = {
-                    w: image.with_name(f"{image.stem}-{w}.png")
-                    for w in request["displaySizes"]
-                }
-                derive_images(image, derived)
+                displays = derive_images(image, request["displaySizes"])
                 sequence.append(
                     {
                         "frame": start + frame,
                         "path": image.relative_to(target).as_posix(),
                         "displayPaths": [
-                            p.relative_to(target).as_posix() for p in derived.values()
+                            p.relative_to(target).as_posix() for p in displays
                         ],
                     }
                 )
@@ -281,10 +278,9 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
             seek = ["-vf", f"select=eq(n\\,{start})"] if request.get("film") else []
             ffmpeg(["-i", str(source), *seek, "-map_metadata", "-1",
                     "-frames:v", "1", str(path)])
-            derived = {w: target / f"{name}-{w}.png" for w in request["displaySizes"]}
-            derive_images(path, derived)
+            displays = derive_images(path, request["displaySizes"])
             sequence = [{"frame": start, "path": path.name,
-                         "displayPaths": [p.name for p in derived.values()]}]
+                         "displayPaths": [p.name for p in displays]}]
         items.append(
             {
                 "id": item["id"],

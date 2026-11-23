@@ -1,11 +1,11 @@
-"""媒体评审、问题及基线的统一入口。"""
+"""媒体评审和问题的统一入口。"""
 
 from pathlib import Path
 import json
 
 from m2v.core.project import load_project
 from m2v.core.errors import M2VError
-from . import ledger, reviews, issues, baselines, dependencies, media_evidence
+from . import ledger, reviews, issues, dependencies, media_evidence
 from .storage import read, locked
 
 
@@ -19,30 +19,12 @@ def add_parsers(sub):
     problem.add_argument("action", choices=("update",))
     problem.add_argument("--project", required=True)
     problem.add_argument("--file", required=True)
-    baseline = sub.add_parser("baseline", help="保护基线与安全清理")
-    baseline.add_argument("action", choices=("create", "prune"))
-    baseline.add_argument("--project", required=True)
-    baseline.add_argument("--reason", default="")
-    baseline.add_argument("--files", nargs="+", default=[])
-    baseline.add_argument("--candidate", action="store_true")
 
 
 def dispatch(args):
     root, manifest = load_project(args.project)
     with locked(root), dependencies.snapshot(), media_evidence.snapshot():
-        if args.command == "baseline":
-            result = (
-                baselines.create(
-                    root,
-                    manifest,
-                    reason=args.reason,
-                    files=args.files,
-                    reset=not args.candidate,
-                )
-                if args.action == "create"
-                else baselines.prune(root, manifest)
-            )
-        elif args.command == "issues":
+        if args.command == "issues":
             issues.update(root, read(Path(args.file)))
             result = ledger.append(root, manifest, "issues-updated")
         elif args.action == "start":

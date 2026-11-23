@@ -178,17 +178,19 @@ def generate(
         props_path = temp / "props.json"
         props_path.write_text(json.dumps(props, ensure_ascii=False), encoding="utf-8")
         temp_video = temp / "video.mp4"
-        outcome = remotion.bundle(web_dir=web, out_dir=temp / "bundle", storyboard_path=material_path,
-                                  content_root=project_dir.parent, workspace_root=project_dir.parent, cache=True)
-        timings.record("bundle", outcome.build_seconds)
-        timings.record("cache", outcome.cache_seconds)
-        confirm = metadata_confirm((spec.fps, spec.width, spec.height, total_frames), temp_video,
-                                   crf=crf, preset=preset, frames=frames, start_frame=start_frame)
-        render_started = time.monotonic()
-        session = remotion.render_session(
-            web_dir=web, bundle_dir=outcome.path, props=props_path, composition_id=spec.composition_id,
-            on_metadata=confirm, timeout_s=3600,
-            on_line=None)
+        with remotion.bundle(
+            web_dir=web, out_dir=temp / "bundle", storyboard_path=material_path,
+            content_root=project_dir.parent, workspace_root=project_dir.parent, cache=True,
+        ) as outcome:
+            timings.record("bundle", outcome.build_seconds)
+            timings.record("cache", outcome.cache_seconds)
+            confirm = metadata_confirm((spec.fps, spec.width, spec.height, total_frames), temp_video,
+                                       crf=crf, preset=preset, frames=frames, start_frame=start_frame)
+            render_started = time.monotonic()
+            session = remotion.render_session(
+                web_dir=web, bundle_dir=outcome.path, props=props_path, composition_id=spec.composition_id,
+                on_metadata=confirm, timeout_s=3600,
+                on_line=None)
         timings.record("metadata", float(session.get("readySeconds") or 0))
         timings.record("render", max(time.monotonic() - render_started - timings.as_dict()["metadata"], 0))
         with perf.measure(timings, "probe"):

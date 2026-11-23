@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -12,10 +14,42 @@ from film_runtime.core.errors import VideoError
 from m2v.core.project import load_current_prepared, load_project
 from m2v.types.scene_film import adapter, explainer
 from film_runtime.types.scene_film import code_scenes
+from film_runtime.types.scene_film.code_scenes import workspace
 from helpers.scene_film import (
     SOURCE, board, code_scene, fake_tts, prepare_build, project, requires_node,
     scene_page, scene_root, write_source,
 )
+
+
+def test_recording_workspace_reaps_only_abandoned_owned_directories(tmp_path, monkeypatch):
+    cache = tmp_path / "outputs" / "code-cache"
+    root = cache / ".recordings"
+    root.mkdir(parents=True)
+    abandoned = root / "code-9931-11111111"
+    parent_alive = root / "code-9932-22222222"
+    worker_alive = root / "code-9931-33333333"
+    recent = root / "code-9931-44444444"
+    unknown = root / "code-unsupported"
+    for directory in (abandoned, parent_alive, worker_alive, recent, unknown):
+        directory.mkdir()
+        (directory / "frame-000000.png").write_bytes(b"scratch")
+    (worker_alive / ".worker-9933").touch()
+    old = time.time() - workspace.STALE_SECONDS - 1
+    for directory in (abandoned, parent_alive, worker_alive, unknown):
+        os.utime(directory, (old, old))
+    published = cache / "published.mp4"
+    published.touch()
+    monkeypatch.setattr(workspace, "process_is_alive", lambda pid: pid in (9932, 9933))
+
+    with pytest.raises(RuntimeError, match="capture interrupted"):
+        with workspace.recording_workspace(cache) as directory:
+            assert not abandoned.exists()
+            assert all(item.exists() for item in (parent_alive, worker_alive, recent, unknown, published))
+            workspace.register_worker(directory)
+            assert (directory / f".worker-{os.getpid()}").is_file()
+            raise RuntimeError("capture interrupted")
+    assert not directory.exists()
+
 
 def storyboard(scene: dict) -> dict:
     """只保留这一幕，便于按片段数量断言录制与缓存复用。"""
