@@ -13,6 +13,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
+from film_runtime.types.scene_film.code_scenes.cache import using_scene_cache
 from film_runtime.core.errors import VideoError
 from film_runtime.core.project import _write_json
 from film_runtime.engine import remotion
@@ -151,6 +152,9 @@ def render_stills(root: Path, project: dict, frames: list[int], destination: Pat
     return manifest
 
 
+
+
+@using_scene_cache
 def materialize_all(root: Path, project: dict) -> dict:
     """物化全片片段并返回带本地媒体路径的准备 props，供制作工具读取。"""
     from film_runtime.types.scene_film import code_scenes, explainer_render

@@ -160,6 +160,7 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
                 _clip_receipt(output, first, last, extra=final_extra)
         relative = output.relative_to(root).as_posix()
         inputs["file:" + relative] = digest(output)
+        output.touch()
         return relative
 
 
@@ -590,6 +591,8 @@ def _encode(work: Path, output: Path, frames: int, width: int, height: int, *, s
                   "-crf", "18", str(temporary)])
     _verify_clip(temporary, frames)
     security.deliver(temporary, output)
+    for frame_path in captured:
+        frame_path.unlink()
 
 
 def _verify_clip(video: Path, frames: int) -> None:

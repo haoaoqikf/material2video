@@ -20,6 +20,9 @@ from m2v.type_system import catalog, registry
 
 def dispatch(args) -> int:
     """按已解析的命令执行；错误交给 `m2v.cli.main` 统一映射为退出码。"""
+    if args.command == "storage":
+        from m2v.production.video_storage import dispatch as storage_dispatch
+        return storage_dispatch(args)
     if args.command == "sample":
         from m2v.production.sample_cli import dispatch as sample_dispatch
         return sample_dispatch(args)
@@ -172,6 +175,9 @@ def _project_command(args) -> int:
         if jobs > 1 and not video_type.supports_render_jobs:
             raise M2VError(f"当前类型 {manifest['type']} 不支持 --jobs > 1")
         render_options = {"jobs": jobs} if jobs > 1 and video_type.supports_render_jobs else {}
+        from m2v.production.video_storage import reclaim_recordings
+
+        reclaim_recordings(root)
         if args.command == "render":
             _require_render_input(video_type, root, manifest)
             _production_render_event(root, manifest, 'render-request')

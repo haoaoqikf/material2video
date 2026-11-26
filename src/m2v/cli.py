@@ -41,6 +41,8 @@ def _parser() -> argparse.ArgumentParser:
     add_parsers(sub)
     from m2v.production.sample_cli import add_parser as add_sample_parser
     add_sample_parser(sub)
+    from m2v.production.video_storage import add_parser as add_storage_parser
+    add_storage_parser(sub)
     voices = sub.add_parser("voices", help="列出合成可用音色（edge-tts 需要联网）")
     voices.add_argument("--locale", default="zh-CN", help="区域，例如 zh-CN；--locale all 列出全部")
     voices.add_argument("--backend", choices=("edge-tts", "kokoro", "qwen3-tts"), default="edge-tts",

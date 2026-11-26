@@ -784,3 +784,35 @@ def test_full_timeline_uses_prepared_composition_without_review_or_encode(
             assert not errors
         finally:
             browser.close()
+
+
+def test_archived_review_can_be_compared_and_exported_as_an_isolated_copy(work):
+    from m2v.production import review_blobs
+
+    root, manifest = work
+    req = request()
+    req["conditions"] = ["核对主体清晰度"]
+    pack = reviews.package(root, manifest, req)
+    blind = reviews.import_report(root, manifest, report(work, pack))
+    before = digest(pack / "manifest.json")
+    path = pack / "evidence-0000.png"
+    original = receipt(outputs(root), path)
+    initial = review_blobs.compact(pack)
+
+    assert initial["archivedFiles"] == 2
+    assert not path.exists()
+    assert ledger.evidence_valid(root, [original])
+    assert digest(pack / "manifest.json") == before
+
+    compare = reviews.compare(root, manifest, blind["id"])
+    reviews.import_report(root, manifest, report(work, compare))
+    compacted = review_blobs.compact(compare)
+    assert compacted["objectBytesAdded"] == 0
+    assert ledger.status(root, manifest)["trial"][0]["status"] == "pass"
+
+    destination = root / "isolated-review"
+    review_blobs.export(root, pack.name, destination)
+    copied = destination / path.name
+    assert digest(copied) == original["sha256"]
+    copied.write_bytes(b"external edit")
+    assert ledger.evidence_valid(root, [original])

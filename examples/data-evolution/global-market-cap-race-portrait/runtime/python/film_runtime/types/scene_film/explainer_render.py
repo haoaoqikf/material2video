@@ -14,6 +14,7 @@ import tempfile
 import time
 import wave
 from pathlib import Path
+from .code_scenes.cache import using_scene_cache
 from film_runtime.core.audio_policy import declared_audio
 from film_runtime.core.errors import VideoError
 from film_runtime.core.project import _write_json, load_current_prepared
@@ -208,6 +209,7 @@ def _encode_portrait_canvas(source: tuple[Path, int, int], output: Path, fps: in
     ])
 
 
+@using_scene_cache
 def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_frame=None, output=None,
               defer_validation=False, jobs: int = 1) -> Path:
     prepared = current(root, project)

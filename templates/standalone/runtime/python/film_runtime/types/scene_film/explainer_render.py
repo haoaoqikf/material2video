@@ -22,6 +22,7 @@ from film_runtime.core import frames
 from film_runtime.engine import audio, contract_page, output_validation, perf, remotion, render_pipeline
 from film_runtime.engine.http_server import LocalServer
 from .explainer_prepare import implementation_digest
+from .code_scenes.cache import using_scene_cache
 
 logger = logging.getLogger(__name__)
 
@@ -170,6 +171,7 @@ def visual_provenance(prepared: dict) -> dict:
                        "shots": {shot["id"]: shot.get("post") for shot in shots}}}
 
 
+@using_scene_cache
 def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_frame=None, output=None,
               defer_validation=False, jobs: int = 1) -> Path:
     prepared = current(root, project)

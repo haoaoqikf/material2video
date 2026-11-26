@@ -39,6 +39,8 @@ python models/qwen3-tts/fetch.py --check --voice clone_<slug>
 
 `models/qwen3-tts/registry.json` 同时登记参考音色档案（参考音频、参考文本、语言、来源、用户授权与 SHA256）。参考音色是作品资产，不能从模型仓库恢复；更换参考音频或参考文本会改变语音缓存键。数字与拉丁字母旁白当前同样不支持。
 
+Qwen3-TTS 恢复优先使用本机校验过的摘要缓存。同一磁盘上的工程共享权重数据，跨盘可恢复普通副本。可用 `M2V_QWEN3_MODEL_STORE` 配置机器级缓存目录。需要独立文件时运行 `python models/qwen3-tts/fetch.py --restore --portable --voice <音色>`。共享权重由恢复工具维护，参考音色继续在作品内校验。
+
 正式渲染会检查当前准备记录，必要时先准备，然后逐帧采集、合成字幕和转场、混音并验证媒体，输出 `outputs/video.mp4` 及旁车。它生成技术候选，不自动代表研究、视听品质或独立审核完成。预览服务使用同一本地场景与合成实现，第一次需要准备场景片段；随后可以播放、暂停和定位。
 
 只准备材料可运行 `pnpm run video:prepare`。该脚本显式命名，避免包管理器的安装生命周期自动触发视频制作。也可以直接执行 `uv run --frozen python scripts/video.py prepare`。检查片段可使用 `pnpm run preview --limit-frames 30`；此命令写片段视频，网页交互预览使用 `--serve`。

@@ -47,7 +47,7 @@ uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 
 `init` 生成完整的三秒主题工程，五类默认都不预装三维、图表或业务来源模块；正式创作时改写分镜和 `scenes/opening.tsx`。使用 Kokoro 的作品需在自身依赖中安装 `kokoro` 与 `misaki[zh]`（模板提供 `kokoro` extra），并用 `python models/fetch.py --download --voice <音色>` 恢复模型。使用 Qwen3-TTS 的作品需安装 `qwen-tts` 与 `stable-ts`（模板提供 `qwen3-tts` extra），并用 `python models/qwen3-tts/fetch.py --download --voice <音色>` 恢复主模型与对齐模型；参考音色必须随作品保存并登记摘要。本地命令、环境和恢复前提见[独立工程说明](templates/standalone/README.md)。生成后可以直接在作品目录运行，也可由 m2v 委托；默认 `videos/<类型>/<作品名>/` 只是生成位置，显式路径和后续搬移不要求该目录层级。`preview` 只检查片段；最终成片与审核按[媒体评审契约](.agents/skills/material2video/references/review-contract.md)执行。`render --jobs N` 可并行，默认 2；内存紧张时改为 1，并行只影响耗时，不改变帧序与成片契约。默认内容位置可通过 `--content-root` 或 `M2V_CONTENT_ROOT` 设置。
 
-Remotion 构建缓存按使用时间保留最近 8 份，并保护正在渲染或取帧的构建。录制中断留下的逐帧临时目录在后续录制时按进程归属回收。文件位置和清理范围见[目录约定](.agents/skills/material2video/references/paths.md#构建与录制缓存)。
+Remotion 构建缓存按使用时间保留最近 8 份，并保护正在渲染或取帧的构建。场景录制与合成共用片段缓存上限，成功编码后即回收对应中间帧，并按进程启动身份回收中断录制。文件位置和清理范围见[目录约定](.agents/skills/material2video/references/paths.md#构建与录制缓存)。
 
 ## 命令
 
@@ -123,11 +123,15 @@ Pexels 是可用的图片和视频素材来源。选定素材后，把公开媒�
 
 日常验证只跑受影响的测试与真实媒体节点；正式全量回归仅在用户明确要求或人工发布验证时执行。文档投影可用 `uv run python .agents/skills/material2video/scripts/sync_docs.py --check` 检查。
 
+### 作品存储
+
+`uv run m2v storage inventory` 盘点仓库内作品与示例，可用 `--project` 指定单个工程或用 `--content-root` 纳入仓库外作品。清理中断录制、封存评审媒体和恢复隔离副本的操作见[作品存储](.agents/skills/material2video/references/paths.md#清理预览与执行)。
+
 ### 媒体评审
 
-`m2v review start|pack|compare|import|timeline|retarget|reuse|scope|confirm-evidence` 统一周期、隔离包、报告和证据复用。评审 v4 声明 keyframe 或 process 用途；报告顶层及每项明确 adoption=adopt/reject，仅 pass 可以采用。旧评审通过不授权新版本，历史与未解决必改保留。
+`m2v review start|pack|compare|import|timeline|retarget|reuse|scope|confirm-evidence|export` 统一周期、隔离包、报告和证据复用。评审 v4 声明 keyframe 或 process 用途；报告顶层及每项明确 adoption=adopt/reject，仅 pass 可以采用。旧评审通过不授权新版本，历史与未解决必改保留。
 
-新评审包的原生尺寸展示图复用包内净化 PNG。其他尺寸按比例派生，各包独立封存和校验证据文件。
+新评审包的原生尺寸展示图复用包内净化 PNG。其他尺寸按比例派生。报告导入后按摘要保存评审媒体。需要复核时，用 `review export` 恢复已校验的独立目录。
 
 status 只读展示正式关键帧、适用的关键样片窗口、当前技术 QA、整片证据复核（`wholeFilmReview`）和待解决问题。超过 30 秒的作品须登记并通过全部必审样片窗口。技术候选可以提前生成。研究、试制和验收均无需播放观看或试听；整片复核基于当前候选的抽帧、时间轴和适用音频信号登记。
 

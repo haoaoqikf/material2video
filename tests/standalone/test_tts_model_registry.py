@@ -66,3 +66,37 @@ def test_prepare_stages_fonts_before_computing_inputs(monkeypatch) -> None:
     monkeypatch.setattr(explainer_prepare, "prepare", lambda *args, **kwargs: calls.append("prepare"))
     cli._prepare({}, SimpleNamespace(voice=None, rate=None, rhythm="null", backend=None))
     assert calls == [["node", "scripts/sync-fonts.mjs"], "prepare"]
+
+
+def test_qwen_restore_reuses_identical_weight_and_can_make_portable_copy(tmp_path, monkeypatch):
+    import hashlib
+    import importlib.util
+    import os
+
+    module_spec = importlib.util.spec_from_file_location(
+        "qwen_fetch", TEMPLATE / "models/qwen3-tts/fetch.py")
+    fetch = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(fetch)
+    monkeypatch.setenv("M2V_QWEN3_MODEL_STORE", str(tmp_path / "shared"))
+    entry = {
+        "file": "qwen3-tts/model/weight.bin", "provider": "modelscope",
+        "bytes": 6, "sha256": hashlib.sha256(b"shared").hexdigest(),
+    }
+    first = tmp_path / "first" / "files"
+    second = tmp_path / "second" / "files"
+    first_weight = first / entry["file"]
+    second_weight = second / entry["file"]
+    first_weight.parent.mkdir(parents=True)
+    first_weight.write_bytes(b"shared")
+    monkeypatch.setattr(fetch, "FILES", first)
+    fetch.restore(entry, download=False)
+    monkeypatch.setattr(fetch, "FILES", second)
+    fetch.restore(entry, download=False)
+    if first_weight.stat().st_nlink > 1:
+        assert os.path.samefile(first_weight, second_weight)
+    assert second_weight.read_bytes() == first_weight.read_bytes()
+
+    fetch.restore(entry, download=False, portable=True)
+    assert not os.path.samefile(first_weight, second_weight)
+    second_weight.write_bytes(b"edited")
+    assert first_weight.read_bytes() == b"shared"

@@ -9,6 +9,7 @@ uv run m2v review start --project <作品>
 uv run m2v review pack --project <作品> --file <请求.json>
 uv run m2v review import --project <作品> --file <报告.json>
 uv run m2v review timeline --project <作品>
+uv run m2v review export --project <作品> --pack-id <评审包ID> --out <隔离目录>
 uv run m2v review retarget --project <作品> --file <用户目标变更.json>
 uv run m2v qa --project <作品> --video <当前候选>
 uv run m2v status --project <作品> --history
@@ -16,6 +17,8 @@ uv run m2v issues update --project <作品> --file <问题.json>
 ```
 
 start 显式建立 version=4 新周期，归档旧问题正文并保留旧报告。旧通过不能授权新版，未解决历史必改承接到当前周期。历史整片问题需要当前整片复核及针对原缺陷的实际修复证据。历史关键帧或样片的独立必改仍须同范围独立复查。旧机器合同和旧请求/报告明确不兼容。DESIGN.md 是人读制作依据，不参与机器合同解析。
+
+报告导入后，包内媒体按摘要进入作品的 `outputs/review-blobs/`，原清单、调用路径、报告和问题记录继续可核验。复看旧包时，用 `review export` 将原清单和关联字节复制到 `outputs/` 外的新目录。调用记录中的 `inputPaths` 仍按清单登记原 `review-pack/<id>/...` 路径。观察员只读取给定隔离副本。存量封存见[清理预览与执行](paths.md#清理预览与执行)。
 
 ## 媒体与报告格式
 

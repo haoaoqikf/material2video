@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import json
+import sys
 
 from m2v.core.project import load_project
 from m2v.core.errors import M2VError
@@ -11,10 +12,12 @@ from .storage import read, locked
 
 def add_parsers(sub):
     review = sub.add_parser("review", help="独立媒体评审与全片预演")
-    review.add_argument("action", choices=("start", "pack", "compare", "import", "timeline", "retarget", "reuse", "scope", "confirm-evidence"))
+    review.add_argument("action", choices=("start", "pack", "compare", "import", "timeline", "retarget", "reuse", "scope", "confirm-evidence", "export"))
     review.add_argument("--project", required=True)
     review.add_argument("--file", help="评审、整片证据复核或必审窗口 JSON")
     review.add_argument("--blind-id", help="自动派生同轮对照的当前盲报告 ID")
+    review.add_argument("--pack-id", help="需要恢复隔离副本的评审包 ID")
+    review.add_argument("--out", help="评审副本目录")
     problem = sub.add_parser("issues", help="更新唯一问题记录")
     problem.add_argument("action", choices=("update",))
     problem.add_argument("--project", required=True)
@@ -22,6 +25,17 @@ def add_parsers(sub):
 
 
 def dispatch(args):
+    if args.command == "review" and args.action == "export":
+        from . import review_blobs
+        from .video_storage import projects
+
+        if not args.pack_id or not args.out:
+            raise M2VError("review export 需要 --pack-id 和 --out")
+        root = projects([args.project], None)[0]
+        with locked(root), dependencies.snapshot():
+            result = review_blobs.export(root, args.pack_id, Path(args.out))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
     root, manifest = load_project(args.project)
     with locked(root), dependencies.snapshot(), media_evidence.snapshot():
         if args.command == "issues":
@@ -59,10 +73,24 @@ def dispatch(args):
         else:
             if not args.file:
                 raise M2VError("pack/import 需要 --file")
-            result = (
-                reviews.package_result(root, reviews.package(root, manifest, read(Path(args.file))))
-                if args.action == "pack"
-                else reviews.import_report(root, manifest, Path(args.file))
-            )
+            if args.action == "pack":
+                result = reviews.package_result(root, reviews.package(root, manifest, read(Path(args.file))))
+            else:
+                from . import review_blobs
+                from m2v.core.delivery import outputs
+                from .storage import local
+
+                report_file = Path(args.file)
+                result = reviews.import_report(root, manifest, report_file)
+                try:
+                    pack_dir = local(outputs(root), read(report_file)["packPath"]).parent
+                    with dependencies.snapshot(fresh=True):
+                        review_blobs.compact(pack_dir)
+                except (M2VError, OSError, ValueError, TypeError, KeyError) as exc:
+                    print(f"[warning] 评审报告已导入，媒体封存未完成：{exc}", file=sys.stderr)
+        if args.command == "review" and args.action in {"pack", "compare"}:
+            from .video_storage import compact_older_reviews
+
+            compact_older_reviews(root)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0

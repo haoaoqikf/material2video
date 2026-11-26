@@ -13,7 +13,7 @@ IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tif", ".ti
 SIDECAR_SUFFIXES = (".srt", ".provenance.json", ".performance.json")
 _TEMP_DIR = re.compile(r"^(?:a2v|m2v|debug|tmp|render)(?:-|$)", re.IGNORECASE)
 _KNOWN_REGENERABLE_DIRS = {"previews", "qa", "bench", "review-contact-sheets"}
-_PREPARED_MEDIA_DIRS = {"media", "code-cache"}
+_PERSISTENT_DIRS = {"media", "code-cache", "review-blobs"}
 
 
 def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, preserve_previews: bool = False,
@@ -124,7 +124,7 @@ def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, 
         outputs, followlinks=False,
         onerror=lambda exc: failures.append(f"无法遍历输出目录 {exc.filename}: {exc}"),
     ):
-        child_dirs[:] = [name for name in child_dirs if name.lower() not in _PREPARED_MEDIA_DIRS]
+        child_dirs[:] = [name for name in child_dirs if name.lower() not in _PERSISTENT_DIRS]
         if Path(directory) != outputs:
             directories.append(Path(directory))
     for target in reversed(directories):
@@ -146,7 +146,7 @@ def _iter_output_files(outputs: Path, failures: list[str]):
             child = Path(directory) / name
             if child.is_symlink():
                 failures.append(f"符号链接目录未递归清理：{child}")
-            elif name.lower() not in _PREPARED_MEDIA_DIRS:
+            elif name.lower() not in _PERSISTENT_DIRS:
                 safe_children.append(name)
         child_dirs[:] = safe_children
         for name in files:
