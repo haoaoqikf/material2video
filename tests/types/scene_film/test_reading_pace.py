@@ -7,6 +7,11 @@ from m2v.commands import _report_reading_pace
 from film_runtime.types.scene_film import explainer_prepare, reading_pace
 
 from helpers.scene_film import fake_record, fake_tts, project
+import pytest
+
+# 这些用例需要恢复不入库的字体或示例媒体，默认排除；本地用 --full 运行。
+pytestmark = pytest.mark.restored
+
 
 
 def cue(start, end, text):

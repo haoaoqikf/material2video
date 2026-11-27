@@ -12,6 +12,10 @@ from m2v.cli import main
 from m2v.core.project import load_project
 from m2v.production.dependencies import scene_sources
 
+# 这些用例需要恢复不入库的字体或示例媒体，默认排除；本地用 --full 运行。
+pytestmark = pytest.mark.restored
+
+
 
 def test_bundled_projects_match_example_index():
     assert {path.parent for path in EXAMPLES.glob("*/*/project.json")} == set(EXAMPLE_PATHS.values())

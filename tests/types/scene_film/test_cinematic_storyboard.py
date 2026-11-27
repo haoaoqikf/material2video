@@ -12,6 +12,10 @@ from m2v.types.scene_film import adapter, explainer
 from film_runtime.types.scene_film import code_scenes, explainer_prepare
 from helpers.scene_film import board, fake_record, fake_tts, project, scene, scene_root
 
+# 这些用例需要恢复不入库的字体或示例媒体，默认排除；本地用 --full 运行。
+pytestmark = pytest.mark.restored
+
+
 
 
 def prepare_with(tmp_path, monkeypatch, data, *, seconds=1, **options):

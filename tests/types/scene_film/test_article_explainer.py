@@ -11,6 +11,10 @@ from film_runtime.types.scene_film import explainer_prepare as prepare
 
 from helpers.scene_film import ENTRY, WEB, board, fake_record, fake_tts, project, scene, scene_root
 
+# 这些用例需要恢复不入库的字体或示例媒体，默认排除；本地用 --full 运行。
+pytestmark = pytest.mark.restored
+
+
 
 ROOT = Path(__file__).resolve().parents[3]
 

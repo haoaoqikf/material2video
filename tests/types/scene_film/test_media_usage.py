@@ -11,6 +11,10 @@ from m2v.core.errors import M2VError
 from m2v.engine import assets_audit, assets_tools
 from m2v.types.scene_film import media_assets
 
+# 这些用例需要恢复不入库的字体或示例媒体，默认排除；本地用 --full 运行。
+pytestmark = pytest.mark.restored
+
+
 
 @pytest.mark.parametrize("status,met,passed", [
     ("not-checked", None, True), ("no-explicit-restriction", None, True),

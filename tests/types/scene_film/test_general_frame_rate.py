@@ -21,6 +21,10 @@ from film_runtime.types.scene_film import code_scenes, reading_pace
 from helpers.scene_film import board, fake_record, fake_tts, project, scene, scene_root
 from helpers.scene_film import prepare_build, requires_node
 
+# 这些用例需要恢复不入库的字体或示例媒体，默认排除；本地用 --full 运行。
+pytestmark = pytest.mark.restored
+
+
 
 
 @pytest.mark.parametrize("output,story,expected", [

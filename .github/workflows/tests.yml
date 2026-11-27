@@ -13,12 +13,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - shard: common
-            paths: tests/common
+          - shard: common-a
+            paths: "tests/common"
+            slice: "1"
+          - shard: common-b
+            paths: "tests/common"
+            slice: "0"
           - shard: types
-            paths: tests/types
+            paths: "tests/types"
+            slice: ""
           - shard: rest
-            paths: tests/standalone tests/works
+            paths: "tests/standalone tests/works"
+            slice: ""
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -30,4 +36,11 @@ jobs:
           python -m pip install -e . --group dev
           python -m pip check
       - name: Run fast tests
-        run: python -m pytest -n 2 --dist loadfile ${{ matrix.paths }}
+        run: |
+          set -euo pipefail
+          targets="${{ matrix.paths }}"
+          if [ -n "${{ matrix.slice }}" ]; then
+            targets=$(ls tests/common/test_*.py | awk -v keep=${{ matrix.slice }} 'NR % 2 == keep' | tr '\n' ' ')
+            echo "本分片文件：$targets"
+          fi
+          python -m pytest -n 2 --dist loadfile $targets

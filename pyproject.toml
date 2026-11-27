@@ -70,4 +70,5 @@ addopts = "-q --strict-markers"
 markers = [
     "slow: 需要浏览器、真实渲染或长时等待；默认排除，在相关范围内显式选择",
     "media: 需要 ffmpeg 真实编解码；默认排除，在相关范围内显式选择",
+    "restored: 需要恢复不入库的字体或示例媒体后才能跑；默认排除，本地用 --full 运行",
 ]

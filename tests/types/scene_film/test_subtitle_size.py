@@ -12,6 +12,10 @@ from film_runtime.core.errors import VideoError
 from film_runtime.types.scene_film import explainer_prepare, explainer_render
 from helpers.scene_film import fake_record, fake_tts, project
 
+# 这些用例需要恢复不入库的字体或示例媒体，默认排除；本地用 --full 运行。
+pytestmark = pytest.mark.restored
+
+
 
 @pytest.mark.parametrize("subtitle", [
     None, True, [], {}, {"fontSize": True}, {"fontSize": False},

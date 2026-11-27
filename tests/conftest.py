@@ -22,14 +22,14 @@ from m2v.core.workspace import PROJECT_MARKER
 SKILL_MARKER = PROJECT_MARKER
 
 #: 默认不收集的慢速层。日常验证只跑纯单元与契约用例；需要分层时显式选择。
-DEFAULT_EXCLUDED_MARKERS = ("slow", "media")
+DEFAULT_EXCLUDED_MARKERS = ("slow", "media", "restored")
 
 
 def pytest_addoption(parser):
     parser.addoption(
         "--full",
         action="store_true",
-        help="运行全部用例，包括默认排除的 slow 与 media",
+        help="运行全部用例，包括默认排除的 slow、media 与 restored",
     )
 
 
