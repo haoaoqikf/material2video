@@ -111,9 +111,6 @@ def render(root: Path, project: dict, destination: Path, *, entry: str, props: d
         with sync_playwright() as pw:
             probes = code_scenes._capture(pw, root, work, config, verify_frames=settings['verifyFrames'],
                                          selected_frames=selected if kind == 'static' else None)
-        if kind == 'motion':
-            code_scenes._encode(work, destination / 'sample.mp4', count, *size, fps=fps,
-                                supersample=int((config.get('motion') or {}).get('supersample', 1)))
         web = destination / 'web'
         web.mkdir()
         copy_build_outputs(work, web)
@@ -134,6 +131,10 @@ def render(root: Path, project: dict, destination: Path, *, entry: str, props: d
                     image = image.resize(size, Image.Resampling.LANCZOS)
                 image.save(destination / name)
             stills.append({'frame': index, 'path': name})
+        # Encoding removes the source PNG sequence after verification.
+        if kind == 'motion':
+            code_scenes._encode(work, destination / 'sample.mp4', count, *size, fps=fps,
+                                supersample=int((config.get('motion') or {}).get('supersample', 1)))
         if before != snapshot(root, files):
             raise VideoError('采集期间源码或资源发生变化，请重新采集')
     return {'kind': kind, 'entry': entry, 'props': props, 'fps': fps, 'width': size[0], 'height': size[1],
