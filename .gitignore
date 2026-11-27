@@ -50,6 +50,7 @@ renders/
 recordings/
 work/
 *.mp4
+!/docs/site/assets/clip-*.mp4
 *.webm
 *.mov
 *.avi

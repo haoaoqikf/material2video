@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="在《太阳系之旅》里看地月同框、土星环显形与奥尔特云。">
+  <title>太阳系之旅 · Material2Video</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="masthead shell">
+    <a class="brand" href="index.html">Material2Video</a>
+    <a href="index.html#works">作品集</a>
+  </header>
+  <main class="work shell">
+    <header class="work-intro">
+      <p class="meta">三维空间 <span>120 秒</span></p>
+      <h1>太阳系之旅</h1>
+      <p>镜头从太阳出发，连续经过十五站。看地球与月球怎样同框，土星环怎样随镜头抬升从细线变成宽环，最后看太阳在奥尔特云的尺度下缩成一个光点。</p>
+    </header>
+    <figure class="work-media">
+      <video src="assets/clip-solar-system.mp4" poster="assets/poster-solar-system.jpg" width="720" height="406" autoplay muted loop playsinline preload="metadata" controls aria-label="土星环显形的静音片段"></video>
+      <figcaption>土星环显形 · 成片 00:56.6–01:05.6 · 静音</figcaption>
+    </figure>
+    <div class="work-details">
+      <section>
+        <h2>它由这些组成</h2>
+        <ul>
+          <li><a href="https://github.com/haoaoqikf/material2video/blob/main/examples/spatial-3d/solar-system-journey/storyboard.json">分镜</a> <span>十五站的镜头与时序</span></li>
+          <li><a href="https://github.com/haoaoqikf/material2video/blob/main/examples/spatial-3d/solar-system-journey/scenes/journey.tsx">场景源码</a> <span>三维旅程</span></li>
+          <li><a href="https://github.com/haoaoqikf/material2video/blob/main/examples/spatial-3d/solar-system-journey/article.md">材料</a> <span>太阳系旅程原文</span></li>
+        </ul>
+      </section>
+      <section>
+        <h2>想改这里</h2>
+        <p>把 <a href="https://github.com/haoaoqikf/material2video/blob/main/examples/spatial-3d/solar-system-journey/storyboard.json#L4827">分镜中土星镜头的 <code>camera.fov</code></a> 从 44 调到 50，可以拉宽取景，给环带周围留出更多空间。</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

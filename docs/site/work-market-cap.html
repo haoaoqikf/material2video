@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="从竖屏榜单的真实预览帧看苹果与微软交接榜首。">
+  <title>全球市值前十 · Material2Video</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="masthead shell">
+    <a class="brand" href="index.html">Material2Video</a>
+    <a href="index.html#works">作品集</a>
+  </header>
+  <main class="work shell">
+    <header class="work-intro">
+      <p class="meta">数据演化 <span>107.13 秒（完整编排）</span></p>
+      <h1>全球市值前十</h1>
+      <p>竖屏榜单跟踪 2000 年 3 月至 2026 年 11 月的市值排名。看苹果先独占主位，接着与微软各占一个卡位，最后由微软接过榜首舞台。</p>
+    </header>
+    <figure class="work-media portrait-media">
+      <img src="assets/poster-market-cap.jpg" width="810" height="1440" alt="2023 年 12 月市值榜，苹果和微软各占一张卡片，两家的市值分别为 2.897 和 2.903 万亿美元">
+      <figcaption>苹果与微软交接榜首 · 真实预览帧（局部预览约 1.93 秒）</figcaption>
+    </figure>
+    <div class="work-details">
+      <section>
+        <h2>它由这些组成</h2>
+        <ul>
+          <li><a href="https://github.com/haoaoqikf/material2video/blob/main/examples/data-evolution/global-market-cap-race-portrait/storyboard.json">分镜</a> <span>完整历史段落与时长</span></li>
+          <li><a href="https://github.com/haoaoqikf/material2video/blob/main/examples/data-evolution/global-market-cap-race-portrait/scenes/market-history-portrait.tsx">场景源码</a> <span>竖屏榜单和交接卡位</span></li>
+          <li><a href="https://github.com/haoaoqikf/material2video/blob/main/examples/data-evolution/global-market-cap-race-portrait/scenes/market-cap-history.json">材料</a> <span>市值历史快照</span></li>
+        </ul>
+      </section>
+      <section>
+        <h2>想改这里</h2>
+        <p>在 <a href="https://github.com/haoaoqikf/material2video/blob/main/examples/data-evolution/global-market-cap-race-portrait/scenes/market-history-portrait.tsx#L120"><code>market-history-portrait.tsx</code> 的 <code>&lt;h1&gt;</code></a> 编辑「全球市值前十」，就能更换榜单左上角的标题。</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

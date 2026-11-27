@@ -6,7 +6,7 @@
 
 Use a storyboard to organize the content and code to create the visuals. Keep the media, subtitles, and finished video together in a project that can run on its own.
 
-> A frame from a finished video will be added at `docs/site/assets/hero.jpg` in Phase B.
+![A frame from Solar System Journey showing Saturn's golden rings](docs/site/assets/hero.jpg)
 
 **[Watch the examples][video-gallery]** · **[Make your first video](#make-your-first-video-in-three-minutes)** · **[Explore the source](ARCHITECTURE.md)**
 
@@ -20,7 +20,7 @@ Use a storyboard to organize the content and code to create the visuals. Keep th
 | [Solar System Journey](examples/spatial-3d/solar-system-journey/README.md) | Spatial 3D | 120 s | Travel through 15 stops, from the Earth–Moon relationship to a reveal of Saturn’s rings and the scale of the outer Solar System. [Video page][video-solar-system-journey] |
 | [From Telegraphs to Large Language Models](examples/documentary-edit/american-science-milestones/README.md) | Documentary edit | 30 s | A museum telegraph tape opens an archival sequence of ten milestones, then reappears in the finale. [Video page][video-american-science-milestones] |
 
-The video pages arrive in Phase B. Each example README already includes its storyboard, design notes, and recovery steps.
+The gallery includes silent excerpts and preview frames. Each example README includes its storyboard, design notes, and recovery steps. [View the gallery locally](docs/site/README.md)
 All five examples can be restored and exported as standalone projects. [Example index and reproduction steps](examples/README.md)
 
 ## Make your first video in three minutes
@@ -112,9 +112,9 @@ Original code, documentation, example source, and original scripts use the [MIT 
 Remotion is licensed separately. Other materials with licensing notices follow their stated terms.
 See the [third-party notices](THIRD_PARTY_NOTICES.md) for dependencies, fonts, models, and example media.
 
-[video-gallery]: docs/site/index.html
-[video-compound-after-20]: docs/site/index.html#compound-after-20
-[video-global-market-cap-race-portrait]: docs/site/index.html#global-market-cap-race-portrait
-[video-luck-on-stage]: docs/site/index.html#luck-on-stage
-[video-solar-system-journey]: docs/site/index.html#solar-system-journey
-[video-american-science-milestones]: docs/site/index.html#american-science-milestones
+[video-gallery]: https://haoaoqikf.github.io/material2video/
+[video-compound-after-20]: https://haoaoqikf.github.io/material2video/work-compound.html
+[video-global-market-cap-race-portrait]: https://haoaoqikf.github.io/material2video/work-market-cap.html
+[video-luck-on-stage]: https://haoaoqikf.github.io/material2video/work-luck-on-stage.html
+[video-solar-system-journey]: https://haoaoqikf.github.io/material2video/work-solar-system.html
+[video-american-science-milestones]: https://haoaoqikf.github.io/material2video/work-american-science.html

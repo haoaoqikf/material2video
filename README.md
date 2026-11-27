@@ -6,7 +6,7 @@
 
 用分镜组织内容，用代码制作画面，把素材、字幕和成片保存在一个能独立运行的工程里。
 
-> 成片封面将在阶段 B 补到 `docs/site/assets/hero.jpg`。
+![《太阳系之旅》成片帧，金色土星环从侧面展开](docs/site/assets/hero.jpg)
 
 **[看作品][video-gallery]** · **[做第一个视频](#三分钟做出第一条视频)** · **[查看源码](ARCHITECTURE.md)**
 
@@ -20,7 +20,7 @@
 | [太阳系之旅](examples/spatial-3d/solar-system-journey/README.md) | 三维空间 | 120 秒 | 连续经过十五站，观察地月关系、土星环的视角揭示与外层尺度。 [成片页][video-solar-system-journey] |
 | [从电报到大模型](examples/documentary-edit/american-science-milestones/README.md) | 纪实素材剪辑 | 30 秒 | 从馆藏电报纸带切入，用档案串起十项科技节点，结尾回到纸带。 [成片页][video-american-science-milestones] |
 
-成片页将在阶段 B 上线。现在可打开任一作品说明，查看它的分镜、设计材料和恢复步骤。
+作品集提供静音片段及预览帧。也可以打开任一作品说明，查看它的分镜、设计材料和恢复步骤。 [本地查看作品集](docs/site/README.md)
 五部示例都能作为独立工程恢复和导出。 [随附示例与复现说明](examples/README.md)
 
 ## 三分钟做出第一条视频
@@ -114,9 +114,9 @@ Pop-Location
 Remotion 独立授权，其他另有许可标注的内容沿用各自声明。
 依赖、字体、模型与示例素材的许可见[第三方声明](THIRD_PARTY_NOTICES.md)。
 
-[video-gallery]: docs/site/index.html
-[video-compound-after-20]: docs/site/index.html#compound-after-20
-[video-global-market-cap-race-portrait]: docs/site/index.html#global-market-cap-race-portrait
-[video-luck-on-stage]: docs/site/index.html#luck-on-stage
-[video-solar-system-journey]: docs/site/index.html#solar-system-journey
-[video-american-science-milestones]: docs/site/index.html#american-science-milestones
+[video-gallery]: https://haoaoqikf.github.io/material2video/
+[video-compound-after-20]: https://haoaoqikf.github.io/material2video/work-compound.html
+[video-global-market-cap-race-portrait]: https://haoaoqikf.github.io/material2video/work-market-cap.html
+[video-luck-on-stage]: https://haoaoqikf.github.io/material2video/work-luck-on-stage.html
+[video-solar-system-journey]: https://haoaoqikf.github.io/material2video/work-solar-system.html
+[video-american-science-milestones]: https://haoaoqikf.github.io/material2video/work-american-science.html
