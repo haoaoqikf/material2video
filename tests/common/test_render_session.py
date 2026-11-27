@@ -17,6 +17,11 @@ import pytest
 
 import film_runtime.engine.remotion as remotion
 
+# 这里会真正拉起 Node 会话并等待超时后回收进程树，属 slow 层；
+# runner 上残留的子进程会把内存吃穿（日志停在 64% 被 SIGKILL）。
+pytestmark = pytest.mark.slow
+
+
 requires_node = pytest.mark.skipif(
     shutil.which("node") is None, reason="需要 Node 才能验证会话协议"
 )
