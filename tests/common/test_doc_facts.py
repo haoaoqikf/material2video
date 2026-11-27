@@ -46,6 +46,8 @@ def test_tracked_markdown_links_and_anchors_resolve() -> None:
                 missing.append(f"{path.relative_to(ROOT)} -> {target}（文件不存在）")
                 continue
             if fragment and resolved.suffix == ".md":
+                if re.fullmatch(r"L\d+(-L\d+)?", fragment):
+                    continue  # GitHub 行号锚点，由渲染端解析，不是标题锚点
                 if resolved in anchor_cache and fragment not in anchor_cache[resolved]:
                     missing.append(f"{path.relative_to(ROOT)} -> {target}（锚点不存在）")
     assert not missing, "\n".join(missing)
