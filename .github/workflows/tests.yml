@@ -6,8 +6,19 @@ on:
 
 jobs:
   unit:
+    name: unit (${{ matrix.shard }})
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: common
+            paths: tests/common
+          - shard: types
+            paths: tests/types
+          - shard: rest
+            paths: tests/standalone tests/works
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -19,4 +30,4 @@ jobs:
           python -m pip install -e . --group dev
           python -m pip check
       - name: Run fast tests
-        run: python -m pytest -n 4 --dist loadfile
+        run: python -m pytest -n 2 --dist loadfile ${{ matrix.paths }}
