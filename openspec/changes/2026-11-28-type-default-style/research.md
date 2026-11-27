@@ -1,119 +1,70 @@
-# 三类默认风格调研
+## 研究范围与取证方式
 
-调研日期为 2026-11-28。先核查仓库契约，再按「信息载体＋移动观看＋可重复约束」比较各类的两个外部风格族。查阅原发布页、官方指南、原始图片和官方视频有序抽帧。下文逐条注明直接观察、发布者说明和证据缺口。抽帧时间为视频内秒数，稀疏采样只能证明可见状态及先后。未试听，也未运行项目渲染。原始媒体仅临时取证。推荐风格的英文名为项目规范名称，具体数值和禁用规则均是本项目拟定，实施时用原生样片核实。
+本提案把类型默认风格定义为带修订号的公开参考集。整体标杆用真实成片或官方演示观察完成度及整体语言，专项参考用于明确的设计机制，官方规范提供语义与工艺依据。发布映射及工程绑定见 [design.md](design.md) 和 [默认风格规格](specs/type-default-style/spec.md)。
 
-## 仓库现状
-
-- [类型目录](../../../src/m2v/type_system/catalog.json) v3 只有三类身份、说明和材料模板。[目录读取](../../../src/m2v/type_system/catalog.py) 在加载时验证目录版本及三类集合，初始化由 [scaffold.py](../../../src/m2v/standalone/scaffold.py) 复制独立模板。[作品加载](../../../src/m2v/core/project.py) 识别 project v3，明确拒绝 `style`，准备记录 v3 已用完整项目数据计算材料指纹。[schema.py](../../../src/m2v/core/schema.py) 提供严格结构校验，[validate.py](../../../src/m2v/core/validate.py) 提供手写基础校验，`src/m2v/core/` 下没有 `design_tokens*`。实际基础 CSS 令牌在 [web/src/styles/tokens.css](../../../web/src/styles/tokens.css) 等本地源码。Keynote 旧名的主规格只约束共享来源场景的实际令牌消费者。
-- [主项目 CLI](../../../src/m2v/cli.py) 与 [独立 CLI](../../../templates/standalone/runtime/python/film_runtime/cli.py) 分工为委托与执行。[成片完整性](../../../src/m2v/engine/output_validation.py) 已核对解码与输出，独立的 [qa.py](../../../templates/standalone/runtime/python/film_runtime/engine/qa.py) 和 [qa_inspection.py](../../../templates/standalone/runtime/python/film_runtime/engine/qa_inspection.py) 才负责实片取样、冻结、字幕与音频等技术证据。开场、[总设计](../../../templates/standalone/DESIGN.md) 和 [场景设计](../../../templates/standalone/design/scenes/opening.md) 是起步材料。测试分散在类型目录、合约、QA、评审和三个示例，文件与后续验证见 [design.md](design.md)。
-- 旧 [add-style-registry](../archive/2026-10-26-add-style-registry/design.md) 采用 `style.json` 发现、可选 `project.style`、`m2v/style` 导入和整包缓存摘要。随后有 `vibe-night`、`vibe-fable`，又从示例抽出 `doc-archive`（档案与信息叠加）、`count-ledger`（可数物证和状态）、`deep-journey`（深空连续旅程），再加 `dark-proof`（深色论证）。这些能力曾是可选择的包。可核对[三包提案](../archive/2026-10-29-add-three-style-packages-and-migrate-examples/proposal.md)、[寓言规格](../archive/2026-10-28-add-vibe-fable-style-and-examples/specs/vibe-fable-style/spec.md)和[暗场规格](../archive/2026-11-02-add-dark-proof-style-and-sample/specs/dark-proof-style/spec.md)。
-- `ef0cac84` 在[当时的五类统一](../archive/2026-11-07-unify-five-video-types/proposal.md)时删除 `style-registry`、`vibe-fable-style`、`dark-proof-style`、`doc-archive-style`、`count-ledger-style`、`deep-journey-style` 和 `vibe-night-style` 主规格，删除 CLI `m2v styles` 与旧包入口。`openspec/specs/style-registry/` 在本机为空，Git 在该路径下没有当前受控文件。参见[注册表移除增量](../archive/2026-11-07-unify-five-video-types/specs/style-registry/spec.md)。`visual-expression-inspiration` 曾明确写自由采用、融合、自创或跳出，`8d63612a` 删除主规格；资料见[历史增量](../archive/2026-11-07-deepen-style-research-workflow/specs/visual-expression-inspiration/spec.md)。本提案采用固定默认和可验证约束，旧包的设计可用于理解遗留项目。
-
-### AI 现在还能在哪自选风格或标杆
-
-下表分清直接授权、沿工作流传递的自由度、具备输入能力的工具和仍可保留的创作选择。行号对应调研时仓库。
-
-| 位置 | 原文摘录 | 现行含义与拟改 |
-| --- | --- | --- |
-| `openspec/specs/three-video-types/spec.md` | 「三类仅决定制作指导和默认目录」「不提供类别或风格层」 | 无类型风格默认。改为类型额外指定视觉规范，目录和类型路由维持单层 |
-| `openspec/specs/reference-style-transfer/spec.md:33–35` | 「自主选择标杆」「助手 MUST 自主选择并说明具体参考用途」 | 直接授权自选。改为读取类型整体标杆 |
-| 同文件 `:49–58` | 「用户明确或助手主动采用并承诺」「自主融合风格」 | 允许作者承诺和融合整体方向。改为固定整体目标加专项证据 |
-| `openspec/specs/keynote-design-system/spec.md:7–8,52,70–72` | 「配色、排版、构图与动效由作品代码自行设计」「通用作品需要新的视觉风格」 | 本地执行权限缺少上游风格约束。保留本地实现并受生效规范约束 |
-| `openspec/specs/independent-subagent-review/spec.md:59–61` | 「世界级风格开放品质与明确采用」「不强制苹果或其他固定品牌风格」 | 评审跟随作者所选。改用各类型规范有效范围 |
-| `.agents/skills/material2video/SKILL.md:9,32,36` | 「代表场景试制建立实际视觉方向」「比较同场景设计后集中打磨」「世界级品质与风格开放」 | 顶层路由引到案例选方向。入口先解析生效规范，比较设计仍可进行 |
-| `.agents/skills/material2video/references/stage-research.md:7,18,28` | 「以整片为单位调研叙事结构、视听语言和关键镜头」「需要选案时先小范围比较」「用户选定的整体风格覆盖受影响画面」 | 无用户指定时靠调研／试制定方向。改为试制证明固定方向中哪种方案最有效 |
-| `.agents/skills/material2video/references/reference-video-analysis.md:5,16,18–24,104–106` | 「选择具体标杆」「可先筛出 3～5 个」「原创融合不要求复制全部特征」 | 整体与专项都能现场选。整体固定，筛选仍用于专项 |
-| `.agents/skills/material2video/references/stage-design.md:11` | 「用新内容核对选定风格能否跨场迁移」 | 下游接受已选风格。更新为验证生效规范跨场适用 |
-| `.agents/skills/material2video/references/scene-design.md:65,77,98` | 「优先展开可能改变全片结构、衔接或风格的片段」「与实际标杆仍有关键差距就继续处理」「原始要求与选案」 | 保留机制和画面解法选择，目标按规范与授权 |
-| `.agents/skills/material2video/references/design-samples.md:9,27` | 「同轮实际目标对照通过」「AI 图片可以辅助构思、风格讨论和参考研究」 | 样品入口未固定默认目标；保留参考研究和原生交付边界 |
-| `.agents/skills/material2video/references/production-workflow.md:9,31,36` | 「参考与内容不适合分别补查、修制作或重选方向」「比较实质不同的主体造型、构图、布光或表达机制」 | 返工存在重选风格的解释空间。保留重新选画面解法及专项补查 |
-| `.agents/skills/material2video/references/video-revision.md:28` | 「先回到具体参考、深入拆解和本片转化」 | 修订复用／补查参考，补充生效风格与用户授权的来源 |
-| `.agents/skills/material2video/references/visual-review-rubric.md:7–21` | 「苹果官网仅说明品质高度，不是指定风格或每部作品的必选参考」「每片选择实际可查看、适合方向的优秀作品」 | 主要的风格开放条文。数据类改为 Apple Keynote 指定风格，独立评审保留世界级标准 |
-| `.agents/skills/material2video/references/review-contract.md:10,39–41` | 「所选风格的世界级成片完成度」「原始用户要求优先于作者转化」 | 评审目标的默认来源尚未约束。加入固定整体基准，继续保留用户优先和试制／正式分阶段判据 |
-| `.agents/skills/material2video/references/review-protocol.md:35,45,87` | 「references 列出实际参考媒体路径」「用户明确允许换基准或改变采用目标时」 | 请求可提交任意目标，已有用户改靶保护。加入默认基准和授权绑定 |
-| `.agents/skills/material2video/references/subagent-review.md:19` | 「世界级品质与风格开放」 | 修改评审锚点，保留隔离和真实观察 |
-| `.agents/skills/material2video/references/visual-material-selection.md:111` | 「色彩、清晰度、文字、镜头运动和转场按整片视觉语言协调」 | 素材选择依从上游视觉语言；体裁、原始档案与政策约束照用 |
-| `templates/standalone/RESEARCH.md:5,9`、`templates/standalone/DESIGN.md:9` | 「选定风格以世界级完成度为目标」「随研究与实际实现确定共同语言和选案」 | 起步材料保留现选方向的措辞，应改为先引用默认规范和已授权覆盖 |
-| `src/m2v/production/review_tasks.py:27,40–43` | 「正式关键帧按所选风格」「不是固定风格」「实际标杆和原要求只在同轮对照中读取」 | CLI 生成提示接受开放风格。更新通用盲看提示和对照包目标 |
-| `src/m2v/production/reviews.py:329–339,355` | 「按 conditions 区分整体品质标杆、专项目标与备选/历史比较媒体的用途」 | 提示区分用途，尚未要求自带类型标杆身份 |
-| `src/m2v/cli.py:39,52–54,114–117`、`src/m2v/core/project.py:78–81` | 「列出内置视频类型」「初始化作品目录」「获取、校验抖音参考素材并提取授权音轨」「project.style 已移除」 | 当前没有风格选择 flag。通用参考获取和评审请求可承载作者选择，获取操作本身不指定整体风格 |
-
-### 三个示例的视觉基线
-
-| 作品 | 当前设计记录 |
-| --- | --- |
-| `data-evolution/global-market-cap-race-portrait` | 黑底偏轴金属环、冷暖边缘光、等宽数字，主舞台切到排名卡片，手机右侧和底部有暗区，无音轨。[DESIGN.md](../../../examples/data-evolution/global-market-cap-race-portrait/DESIGN.md) |
-| `data-evolution/compound-after-20` | 蓝与琥珀玻璃、共享零线、逐年柱归两塔，原克隆声与双语字幕。[DESIGN.md](../../../examples/data-evolution/compound-after-20/DESIGN.md) |
-| `spatial-3d/solar-system-journey` | 深黑、自然天体色、暖白和淡金，侧光、小补光，连续旅程，单列 Cassini、Blue Marble 等专项依据。[DESIGN.md](../../../examples/spatial-3d/solar-system-journey/DESIGN.md) |
-
-## 共用规范尺度
-
-下列像素是以短边 1080 为基准的设计单位，实现用 `S = min(width, height) / 1080` 乘出实际像素。字号斜线次序在各条注明。横、纵安全边距分别按画幅宽、高的百分比计算，遇字幕或已登记的平台叠加区采用两者中更严格的文字安全区。留白为稳定画面的画布面积中未被文字、数据标记和主体占用的比例，以机检可识别的角色几何或区域估计，复杂实拍和体积背景由独立评审判断清静区域，不能按背景色占比冒充。全出血素材可越安全区，关键信息不可越界。色板用 sRGB，强调数量只数项目绘制并承担强调语义的不同色，同一颜色的透明变化不重计。来源本色、字幕、依法或按既有规则需要的标识按其职责检查。必要正文以项目本地登记的 M2V Inter（拉丁）及 M2V Sans（中文）为默认，字体与许可仍按 [registry.json](../../../fonts/registry.json) 本地恢复。色彩不单独承担关键语义。
-
-入场和退出秒数按实际输出 fps 用共享时序规则量化。这里的常规范围受现有分镜场长、声音、字幕和事实语义约束；如候选无法达到必要阅读窗口，应调该场编排或补证。硬切记 0 秒。播放单位或运动代表物理量时用真实模型或带标记的时间映射，装饰缓动不得改变模型。分别查看原尺寸与约 393 px 宽缩放帧，必要文字和数值在小屏稳定态必须可读。
+本轮于 2026-11-28 通过 `curl.exe` 请求原页及证据地址并记录跟随跳转后的 HTTP 状态。实际打开页面正文、官方截图和有序视频抽帧，以下时间码仅用于复找原作品的观察位置。摘要针对本轮收到的原始媒体、文档或明确标注的本地摘录。核对副本保存在系统临时目录 `m2v-style-2026-11-28`，原页和证据地址可用于复取，仓库提交只保留文字登记。正式验收应封存该轮实际使用的参考证据和摘要。
 
 ## 图文动效 · IBM 2x Grid Kinetic Typography
 
-### 候选与证据
+### 候选与取舍
 
-1. **IBM 2x 栅格与工程化动效，入选。** 官方 2x 文档把画面基元按 2 的幂划分，动效指南要求保持主焦点、阅读方向和单轴运动。实际抽取 Sequential 动效的 0、0.5、1.2、2.4、3.4、4.5 秒：浅底中央纵横大留白，灰色 A–D 单行等距，蓝条从左进入，紫、粉、红随后依序接亮，之后字块移位并复归。构图固定而层级变化可读；抽帧支持先灰后彩、按序接力，不能量出原曲线。项目固定整体参考采用官方栅格／排版指南及该条 Sequential 媒体，颜色数量改为项目自身上限。[IBM 2x Grid](https://www.ibm.com/design/language/2x-grid/) · [IBM 动效指南](https://www.ibm.com/design/language/animation/tips-and-techniques/) · [Sequential 原片](https://www.ibm.com/design/language/videos/animation/animation-tt-sequential-wide.mp4)
-2. **Google Material 3 Expressive。** 官方文章头部动图 0、0.7、1.5 秒是浅紫底、黑色居中粗标题；3 秒只见下方小环；5、8 秒白色两行标题处于大面积柔边彩色光团中，彩场明显变化。官方 motion 文档用物理弹簧区分用途。适合个性化 UI 和情绪表达，整段文字解说使用它的中心舞台和持续色域变化，主语句接力较难克制。[Google Design](https://design.google/library/expressive-material-design-google-research) · [官方动效说明](https://m3.material.io/styles/motion) · [头部原片](https://storage.googleapis.com/gd-prod/media/17f2f91c-7c4d-4344-b112-0cb33ef88cc9_better_easier_emotion_UX_header_00_16x9.mp4)
+选择 IBM 方向。品牌成片提供从开场到收束的一体化文字叙事，官方 Sequential 演示能单独核对焦点接力，网格和字体指南补足排版工艺。把这些观察转用于中文短片的句子层级、图文同排及阅读推进。成片中的商标、品牌文案与操作语气属于原项目。
 
-IBM 方向的网格和进入顺序适合文案、章节和抽象图形占主导的短片，小屏上优先交付一句话的阅读层次。品牌露出、代码语气和 IBM 演示的多色分配不移入项目。
+Google Material 3 Expressive 作为候选。原页和头部视频均为 HTTP 200，抽帧见居中黑标题经空场和回转图标切到柔和彩场上的白色标题。它适合强调品牌情绪和界面状态，本类型优先选择更容易迁移到连续讲解的对齐和语句接力。[Google 原页](https://design.google/library/expressive-material-design-google-research) · [官方头部视频](https://storage.googleapis.com/gd-prod/media/17f2f91c-7c4d-4344-b112-0cb33ef88cc9_better_easier_emotion_UX_header_00_16x9.mp4)
 
-### 可执行草案
+### 默认参考清单
 
-- 浅底 `#F4F6F9` → 次要中性色 `#506070` → 主字 `#121820` 由亮到暗，可用 `#C8D0DB` 作线。强调在 `#0F62FE`、`#6929C4` 中每场最多 1 个，靠字号和实心边界明确主次。
-- 主标题／次句／支持标签为 92／52／32，权重 700／600／500，最多两种字重同窗，主句至多两行。8 栏横屏，4 栏竖屏，横向安全边距 8%、纵向 9%，主要边缘对栅格，稳定态留白至少 35%。
-- 图形采用纯色几何、线、箭头或下划线，每窗一组主句和最多两项支持；有量值时用直接标签与必要单位，图形不能抢走文字焦点。禁止伪代码装饰、渐变、描边字、单字拉伸、空转循环及多轴并发揭示。
-- 入场 0.20–0.38 s，单轴裁切或位移，缓出；同语义接续 0.25–0.45 s，用同轴平移或硬切，离场缓入；组间隔 0.06–0.12 s，稳定读停至少 1.2 s。按实际语序揭示，禁弹跳或同时甩开多个读点。
+| id | role | url 与 HTTP | scope | observed | evidence | accessedAt | sha256 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `ibm-lets-create` | 整体 | [Ryan Quigley 的 IBM《Let's create》原页](https://www.ryanquigley.work/ibm-letscreate) · 200 | 主句主导时的整体构图、阅读推进、跨句一致性与收束完成度 | Cursor 成片从浅底左侧的孤立光标开始，在同一左侧锚点依次排出短句，片尾以蓝色 IBM 标志收束。 | [原页内嵌的 Cursor 成片](https://player.vimeo.com/video/679271031?h=a284b519f8) · 200，抽帧覆盖开场、短句更替及片尾，定位点 00:03、00:19、00:23、00:26、00:28 | 2026-11-28 | 本地抽帧联图 `f8f549c0a2c9d5fb08b422db5c02247675aaf12b3ae27f953c6a94a0f96f3cbc` |
+| `ibm-grid` | 专项 | [IBM Design Language · 2x Grid](https://www.ibm.com/design/language/2x-grid/) · 200 | 图文跨镜对齐、标题与支持内容在不同画面中的组织关系 | 指南用界面、印刷品和视频案例讲解如何以同一栅格组织文字与图形。 | 官方文档，Divisions of two 与 2x Grid for video | 2026-11-28 | 原页响应 `ea972870f3ac83e70a18f4260cbf1cc4ae8910e8ceae0a875da5a45c0dcef2dd` |
+| `ibm-sequential` | 专项 | [IBM 动效指南](https://www.ibm.com/design/language/animation/tips-and-techniques/) · 200 | 揭示顺序、阅读方向及焦点依次交接 | Sequential 演示的灰色字母条被从左进入的彩条依次点亮，随后字块移位并回到待揭示状态。 | [官方 Sequential 原片](https://www.ibm.com/design/language/videos/animation/animation-tt-sequential-wide.mp4) · 200，抽帧覆盖起始、接亮、移位与复归，定位点 00:00.0、00:01.2、00:02.4、00:03.4、00:04.5 | 2026-11-28 | 原片 `0b1562ee397ba170e4a2e492f9501a3b6023a69b515edecf573dc4a5fc084c82` |
+| `ibm-type-basics` | 规范 | [IBM Design Language · Type basics](https://www.ibm.com/design/language/typography/type-basics/) · 200 | 文本层级、对齐、阅读连贯性 | 文档以左对齐、调整行间距及主副标题的示例说明排版怎样帮助阅读。 | 官方文档，Flush left、Leading 与 Titles and subtitles | 2026-11-28 | 原页响应 `6a1a3ae438efa215be618f5324b1f661bc8cab5f05a0f9ed539edb93df261bf5` |
+
+**证据缺口**　Cursor 与 Sequential 取点支持语句更替和先后顺序。中文断句、字幕同窗和小屏阅读需用本片画面验证。音频、原片缓动曲线及中间读停的细节无本轮证据。
 
 ## 数据演化 · Apple Keynote Presentation Style
 
-### 证据与适用
+### 候选与取舍
 
-- Apple 的 Keynote 官方主题选择截图可见白／黑简洁主题卡与同一界面内的彩色、纹理主题。图表选取截图可见同一网格内的二维条、折线与多色类别样式。官方文档明确主题配套颜色及字体，Magic Move 用跨页共享对象的连续变换承接状态。截图是静态，未实测 Keynote 软件对转场的默认秒数或缓动。[创建演示文稿](https://support.apple.com/guide/keynote/create-a-presentation-tan317e80e8c/mac) · [主题截图](https://help.apple.com/assets/6A89012DB8A442E3B007EABB/6A89012E7777AF96AB088730/en_US/f1c754de8900f4a168e6518950c9a42b.png) · [图表指南](https://support.apple.com/en-euro/guide/keynote/tan1a8924264/mac) · [图表选择截图](https://help.apple.com/assets/6A89012DB8A442E3B007EABB/6A89012E7777AF96AB088730/en_US/c44b827eab7d6dade3788548c4d3192f.png) · [Magic Move](https://support.apple.com/en-il/guide/keynote/tanff5ae749e/mac)
-- Apple WWDC22《Design an effective chart》实际抽取 20、42、70、220、275、302 秒：70 秒构图左黑右实拍，标题与短句用白字分级；220 秒只留黑底中央一根亮蓝柱；275 秒左侧短标题和小图标围绕右侧空坐标框，302 秒版式保持并出现白色点列。支持「一屏一个揭示、把框架留给状态变化」，这些取点不足以量出转场曲线。WWDC 视频为固定整体演示参考，Keynote 官方截图与指南用于落实演示语言，HIG 用于坐标轴、刻度、网格、marks 和说明的语义校验。HIG 属于界面图表指导，视频规则由本项目提炼。[Apple WWDC22 原页及 SD/HD 下载](https://developer.apple.com/videos/play/wwdc2022/110340/) · [Apple HIG Charts](https://developer.apple.com/design/human-interface-guidelines/charts)
-- 数据演化中的 Keynote 是用户明确指定的设计语言，使用上述可观察参考。旧条文「苹果官网仅说明品质高度」在通用审美意义上仍可用于其他作品的方法讨论，不能替代各类型正式整体基准。此方案采用简洁演示页族，Apple 的产品界面、素材、品牌标和商业字体均无需复制。
+沿用用户指定的 Apple Keynote Presentation Style。Keynote 主题选择器同时展示简洁演示主题、彩色主题及纹理主题。选用简洁演示方向，便于观察图表、读数和讲解本身的层级。整套参考里，WWDC22 提供变化中的实际讲解，Keynote 官方指南提供演示页与图表对象实例，HIG 提供图表语义与可读性的依据。只使用主题截图会缺少图表演化过程，只使用 HIG 会缺少演示完成度证据。
 
-### 可执行草案
+### 默认参考清单
 
-1. **双色底模式。** 默认浅底 `#F7F8FA`、主字 `#141518`、次字 `#515A68`、网格 `#D6DBE3`；已登记深底 `#101217`、主字 `#F5F7FA`、次字 `#ABB3BF`、网格 `#38414E`。浅底按底→线→次字→主字降亮，深底相反。默认用蓝（浅 `#0057C2`、深 `#66A8FF`），严格需要比较时另用琥珀（浅 `#8E4800`、深 `#FFB45E`）。同一帧最多 2 个强调色，普通系列及非焦点排名用中性色或不同线型。
-2. **大字和字阶。** 本地 M2V Inter／M2V Sans，标题／主数／标签／轴刻度为 72／104／38／32，权重 650–750／650–750／500–650／450–550。数值启用等宽数字特性与统一小数精度，不加入 SF Pro、系统回退、装饰体或伪斜体。
-3. **栅格留白。** 横屏 12 栏，竖屏 6 栏，横边距 8%、纵边距 9%，稳定态留白至少 28%。保持同一指标跨页对齐。竖屏市值示例继续在右／底平台遮挡带留安全空间；深底是该风格可登记模式。
-4. **数据图形。** 单一主图使用平面条、线、点或同源分组。柱统一零线，负值显式向另一侧；对比窗共享数值范围和单位，线图确需非零轴时标出范围。最多 4 条浅参考网格线（不含基线）；主数值带单位，图形就近直标，确有必要才用图例。榜单可在精确直标和公共基线下省重复刻度。时刻、单位、排名和实际输入口径一致。幂次、截断或比例变化不得悄然隐藏。
-5. **动效。** 进场 0.22–0.42 s 缓出，小幅位移或淡入；同一数据对象以身份连续，0.30–0.60 s 对象匹配缓入缓出，异主题硬切或 0.18–0.30 s 交叉淡化。柱长、读数、排名及尺度按同一数据模型和明确时间映射，纯演示进度无过冲，不暗示不存在的测量值。最终结果与必须比较的稳定窗各保留至少 1.4 s。
-6. **信息与禁用。** 一屏一结论、一主图、最多两项辅助说明；完整排行榜可显示任务要求的条目，但只有一处主强调。禁立体透视条、反射玻璃／金属冒充量值、霓虹、装饰渐变和爆炸／翻牌式转场。数据源码、单位与标签都正确且画面达到整体完成度后才通过。
+| id | role | url 与 HTTP | scope | observed | evidence | accessedAt | sha256 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `apple-wwdc-effective-chart` | 整体 | [WWDC22 · Design an effective chart](https://developer.apple.com/videos/play/wwdc2022/110340/) · 200 | 演示页的焦点和完成度、讲者与图示的分工、图表从铺垫到揭示的整体节奏 | 演示从讲者与标题分区切到黑底独立图形，并在讲解示例中先呈现空坐标框，再在同一图区揭示白色点列。 | [官方 SD 视频](https://devstreaming-cdn.apple.com/videos/wwdc/2022/110340/3/B5BDA6B6-597F-460B-A88C-959265B6715D/downloads/wwdc2022-110340_sd.mp4) · 200，续传 206，定位点 01:10、03:40、04:35、05:02、09:20、12:13 | 2026-11-28 | SD 原片 `2cfed6bdbe20b2165aa4348cff063137a8dff1c2bd1684122224b5bd57c81c31` |
+| `apple-keynote-themes` | 专项 | [Keynote 官方主题指南](https://support.apple.com/guide/keynote/create-a-presentation-tan317e80e8c/mac) · 200 | 主题内页面语言的连贯性，标题及内容页如何共享视觉关系 | 主题选择器中简洁的白底和黑底卡片与彩色和纹理预览并列，正文将主题说明为预设的幻灯片布局组合。 | 官方文档 Create a presentation from a theme 及[主题选择器截图](https://help.apple.com/assets/6A89012DB8A442E3B007EABB/6A89012E7777AF96AB088730/en_US/f1c754de8900f4a168e6518950c9a42b.png) · 200 | 2026-11-28 | 截图 `c587679f2f4e0cc9a1eb169d1038ba03254ee5a5212a59741241c0b9414ed6b3` |
+| `apple-keynote-charts` | 专项 | [Keynote 官方图表指南](https://support.apple.com/en-euro/guide/keynote/tan1a8924264/mac) · 200 | 演示页图表对象的选择及不同数据形态的呈现 | 图表选择器并排展示柱状、条状、折线和点状等图形，正文按图表种类说明插入和编辑方式。 | 官方文档 Add a column, bar, line, area, pie, donut, or radar chart 及[图表选择器截图](https://help.apple.com/assets/6A89012DB8A442E3B007EABB/6A89012E7777AF96AB088730/en_US/c44b827eab7d6dade3788548c4d3192f.png) · 200 | 2026-11-28 | 截图 `64217721d24b5b98c291870dc94fd52bdece5691e430c36fc08319b07474e871` |
+| `apple-hig-charts` | 规范 | [Apple HIG · Charts](https://developer.apple.com/design/human-interface-guidelines/charts) · 200 | 图形标记、尺度、坐标轴、刻度、网格、注释与信息优先级 | 指南以带标注的柱状图解释图表构成，并分别讨论标记选择、坐标范围及解释性标签。 | 官方文档 Anatomy、Marks、Axes、Descriptive content 及 [Apple 提供的 Markdown 正文](https://developer.apple.com/design/human-interface-guidelines/charts.md) · 200 | 2026-11-28 | 官方 Markdown `0ebc57b531afb305b5e7cf1b4325fece56d10a36506b2c6258bcb0ebe7039a81` |
+
+**证据缺口**　Keynote 截图只支持静态观察，实际数据变化的演示证据来自 WWDC22。引用的取点未覆盖 Keynote 软件的过渡机制。具体项目仍应取证核对数据口径、共同尺度和当前观看条件下的阅读效果。
 
 ## 三维空间 · NASA SVS Scientific Visualization
 
-### 候选与证据
+### 候选与取舍
 
-1. **NASA SVS 数据驱动空间可视化，入选。** SVS《Moon Essentials》经 NASA Science 提供的经向天平动成片，实际抽 0.5、3、8、13、19、24 秒。黑底右侧青色环与地球中心是全景，左侧局部是月球近景，上部月球球体有轴线。轨道、读数或标签主要贴在对应图形附近，红、白位置标识可分别追踪，主体受光随状态变化。视图在各取点保持稳定，时序推进由物体移动表达。整体固定参考用该片与官方素材页。SVS 另一个《Moon Phase and Libration, 2025》正文可读，但直接媒体地址 403，未用它证明画面和运动。[NASA Science 原页](https://science.nasa.gov/resource/moon-essentials-from-nasas-scientific-visualization-studio/) · [经向天平动原片](https://assets.science.nasa.gov/content/dam/science/psd/earths-moon/video-thumbs/libration_longitude_1080p30.mp4) · [月相发布页](https://svs.gsfc.nasa.gov/5415/)
-2. **ESO/SpaceEngine 天文电影式演示。** 实抽 S2 轨道动画 1、5、10、15、20、27 秒。1 秒稠密青线横穿星场，5 秒起独立椭圆位于中央，焦点小光点沿轨道进动，左下红色圆表与白色数值提供尺度，背景恒星纹理贯穿。视觉戏剧性较强，但小屏上的角落读数和开场线密度更适合专项证据。选择 NASA 的空间层级，更容易迁移到体积关系、结构剖面和非天文工程。[ESO 原页](https://www.eso.org/public/videos/eso1825g/) · [ESO 原片](https://cdn.eso.org/videos/medium_podcast/eso1825g.mp4)
+NASA SVS 的经向天平动作品把全局、局部和受光状态放进同一个空间叙事，适合迁移到天体、构件或剖面的关系讲解。ESO 的 S2 比较适合借用「先交代复杂系统、再隔离目标」这一专项机制。其密集的轨迹开场和角落读数在小屏上的可辨性需要另查，因此由 NASA 成片担当整体标杆。NASA 的显示规范补充技术标记与对象、读数和单位的归属关系。
 
-### 可执行草案
+NASA SVS《Moon Phase and Libration, 2025》备选原页返回 HTTP 200，官方媒体直链 HEAD 返回 403。本轮该备选缺动态证据，移出默认集。[NASA SVS 原页](https://svs.gsfc.nasa.gov/5415/) · [探测的官方媒体](https://svs.gsfc.nasa.gov/vis/a000000/a005400/a005415/phases_2025_fancy_360p30.mp4)
 
-- 技术底 `#080D14`、次层 `#92A1B3`、主字 `#F0F4F8` 由暗到明，最多两个测量或导引强调色 `#62C8D2`、`#FFC979`。主体维持自然材质或有记录的伪彩尺度，来源纹理不计强调色。使用可读的主光、补光与轮廓，抑制光晕。
-- 对象名／结论／标尺为 64／44／32，权重 650／550／500。横 12 栏、竖 6 栏、安全边距 8%／9%。主对象运动范围不压文字，经常使用 7:5 横向主体／注释构图，竖屏堆叠。典型姿态保留至少 25% 安静区域，技术爆炸图的留白由实际构件和标注判定。
-- 一对象或一组关系为主，至多两个同时解释的引线，选中构件高亮须有轮廓或清楚标签。保留空间锚点、明确相机与物体各自运动；比例、速度或时间压缩可能误导时按既有小字规则交代。结构比材质噪声优先。
-- 标签进场 0.18–0.32 s 缓出；建立到揭示的镜头过渡 0.70–1.60 s，位置／视线平滑缓入缓出，模型运动按数据或已登记映射。远近交代后静读至少 1.2 s；断地点允许以明确切点及新锚点硬切。禁甩镜、滚转、无动机辉光、镜头污渍和 HUD 噪声，不用假尺度、错位物体或隐藏切换暗示连续空间。
+### 默认参考清单
 
-## 证据边界与复核
+| id | role | url 与 HTTP | scope | observed | evidence | accessedAt | sha256 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `nasa-libration-longitude` | 整体 | [NASA SVS · Moon Essentials](https://science.nasa.gov/resource/moon-essentials-from-nasas-scientific-visualization-studio/) · 200 | 全景与近景的空间层级、连续状态、材质光照及科学解说的整体完成度 | 经向天平动成片同时展示地月轨道全景、月球局部和带轴线的球面视图，红白位置标识随轨道状态分离又接近。 | [NASA 官方经向天平动成片](https://assets.science.nasa.gov/content/dam/science/psd/earths-moon/video-thumbs/libration_longitude_1080p30.mp4) · 200，定位点 00:03、00:08、00:13、00:19、00:24、00:41、01:04、01:28 | 2026-11-28 | 原片 `6aaef5cf5bcf00d5914b1c880d5eaab8853699c0e162d3e04f4077daca0e8f98` |
+| `eso-s2-orbit` | 专项 | [ESO · Animation of the orbit of the star S2](https://www.eso.org/public/videos/eso1825g/) · 200 | 从多轨线场景聚焦到单一轨道，保持空间锚点和动态读数归属 | 成片开场的密集轨道线让位给星场中央的单一椭圆，亮点沿轨道推进，左下读数同步变化。 | [ESO 官方成片](https://cdn.eso.org/videos/medium_podcast/eso1825g.mp4) · 200，定位点 00:01、00:05、00:10、00:15、00:20、00:27 | 2026-11-28 | 原片 `04113276d553c8d0503fd23c909e3012fe1e7fbc6209fcd4fd447745a812852b` |
+| `nasa-display-standard` | 规范 | [NASA · Display Standard](https://www.nasa.gov/reference/appendix-f-vol-2/) · 200 | 技术标签、读数与单位归属，以及结构示意的可辨性 | 规范在 Labels、Numbers 和 Schematics 中分别说明标签靠近数据、读数显示相应单位、结构对象具备可识别标记。 | 官方文档 Appendix F 的 Display Components 相关小节。适用范围为显示可读性语义。 | 2026-11-28 | 原页响应 `488c51138ec635336d6b87ef68b9e97868907e9168ae67c91894114612ef1ace` |
 
-可核对的原媒体 SHA-256 如下。实施时复取同字节或登记实际可核验的参考摘录及其摘要；如果来源变化，先报告缺证，由用户决定是否需要改变整体目标。Apple 视频按官方 HLS 640×360 档下载对应分段，只核对上述时点，正式分段或独立参考材料须补摘要并封存。
+**证据缺口**　NASA 多视图抽样覆盖空间关系与状态，ESO 抽样覆盖聚焦前后及轨道推进。镜头连续性的具体做法、不同画幅的标注遮挡和其他题材的比例读法应由对应作品实证。
 
-| 原媒体 | SHA-256 |
+## 迁移前的作品基线
+
+| 范围 | 当前线索与复核起点 |
 | --- | --- |
-| IBM Sequential | `0b1562ee397ba170e4a2e492f9501a3b6023a69b515edecf573dc4a5fc084c82` |
-| Google Material 3 Expressive 头部 | `ce08ad4460230d45dd46bbca4c812317b114b6787a56c2ece54799f42e2e2c8b` |
-| Apple Keynote 主题截图 | `c587679f2f4e0cc9a1eb169d1038ba03254ee5a5212a59741241c0b9414ed6b3` |
-| Apple Keynote 图表截图 | `64217721d24b5b98c291870dc94fd52bdece5691e430c36fc08319b07474e871` |
-| NASA SVS 月球经向天平动 | `6aaef5cf5bcf00d5914b1c880d5eaab8853699c0e162d3e04f4077daca0e8f98` |
-| ESO S2 原片 | `04113276d553c8d0503fd23c909e3012fe1e7fbc6209fcd4fd447745a812852b` |
+| 市值榜横跨排名交接的竖屏示例 | 黑底金属环、边缘光和等宽数字。先复核读数、图表与换榜时注意力的接续。[示例设计](../../../examples/data-evolution/global-market-cap-race-portrait/DESIGN.md) |
+| 复利示例 | 蓝与琥珀玻璃、共享基线、逐年柱汇成终值，配原克隆声与双语字幕。先复核比较关系和图表揭示。[示例设计](../../../examples/data-evolution/compound-after-20/DESIGN.md) |
+| 太阳系示例 | 深色背景、自然天体色和连续旅程，已有 Cassini 等专项证据。先复核远近视图接续和名称归属。[示例设计](../../../examples/spatial-3d/solar-system-journey/DESIGN.md) |
+| 仓库本地作品内容根 | `videos/<type>/<slug>/` 当前发现 17 份工程清单，其中 v3／分镜 v9 的候选 6 部（数据 5 部、图文 1 部），另有使用旧类型或旧契约的 11 部。本轮环境未发现 `M2V_CONTENT_ROOT`。实际现役状态、重复项和其他内容根需按交付记录逐部确认。 |
 
-Apple Keynote 应用 Magic Move 本轮为官方说明，实际动态观察来自 WWDC 演示。NASA 月相直链缺证，同机构的经向天平动已有实际动态。IBM 与 Google 已有官方短片的稀疏抽样，所有来源曲线和项目阈值仍需以适用原生试制校准。研究材料不构成项目成片的通过证据。
-
-## 对用户的汇报摘要
-
-建议默认采用 IBM 2x Grid Kinetic Typography（图文）、Apple Keynote Presentation Style（数据，用户已指定）及 NASA SVS Scientific Visualization（三维）。以类型目录映射和作品本地规范快照固定目标，用户指令才可覆盖。项目 v4、目录 v4、准备 v4，分镜保持 v9。量化 QA 与独立世界级评审均须通过。待确认两个待定风格，以及是否明确指定某部存量作品沿用已采用的原风格。提案所列视觉数值待原生验证，外部证据覆盖按各条记录。
+本轮取证说明参考可复核。示例及现役工程的成片完成度由后续逐部对照验证，制作调整量按发现的差距估算。
