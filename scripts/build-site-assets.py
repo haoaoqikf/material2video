@@ -119,8 +119,9 @@ def main() -> None:
             save_frame(work.video, work.poster_at, directory / f"poster-{work.slug}.jpg")
             if work.clip_start is not None:
                 save_clip(work, work.clip_start, directory / f"clip-{work.slug}.mp4")
-        # At 61s the rings fill more of the composition than the earlier 58s poster.
-        save_frame(WORKS[0].video, 61, directory / "hero.jpg")
+        # At 64s the rings fill the frame and no subtitle band is burned in; 61s
+        # carried the second half of a two-line caption ("从侧面到全貌，").
+        save_frame(WORKS[0].video, 64, directory / "hero.jpg")
         save_social_preview(directory)
 
         outputs = sorted(directory.iterdir())
