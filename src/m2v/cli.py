@@ -34,7 +34,7 @@ def _register_builtins() -> None:
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="m2v", description="五类视频统一制作工具")
+    parser = argparse.ArgumentParser(prog="m2v", description="三类视频统一制作工具")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("types", help="列出内置视频类型")
     from m2v.production.cli import add_parsers
@@ -124,7 +124,7 @@ def _parser() -> argparse.ArgumentParser:
     ref.add_argument("--user-authorized", dest="user_authorized",
                      help="ref audio 必填：用户明确要求复用该参考作品音频的说明原文")
 
-    author = sub.add_parser("author", help="五类作品的语义审查、候选稿与素材操作")
+    author = sub.add_parser("author", help="三类作品的语义审查、候选稿与素材操作")
     author.add_argument("workflow", choices=("status", "input-review", "candidate", "adopt-candidate", "keyframes", "assets", "sounds"))
     author.add_argument("options", nargs=argparse.REMAINDER)
     data = sub.add_parser("data", help="结构化数据来源编排")

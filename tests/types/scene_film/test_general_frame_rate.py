@@ -50,7 +50,7 @@ def test_conflict():
         storyboard_fps({"output": {"fps": 30}}, {"fps": 60})
 
 
-@pytest.mark.parametrize("kind", ["text-motion", "data-evolution", "principle-metaphor", "spatial-3d", "documentary-edit"])
+@pytest.mark.parametrize("kind", ["text-motion", "data-evolution", "spatial-3d"])
 def test_init_type_defaults(tmp_path, kind):
     root = tmp_path / kind
     assert main(["init", "--type", kind, "--project", str(root)]) == 0

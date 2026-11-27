@@ -57,7 +57,7 @@ work/
 *.wav
 *.mp3
 # 示例媒体按 `assets/recipe.json` 下载或生成、按摘要校验，不进入普通 Git；
-# 公共字体的许可文本仍入库。示例按五类分层。
+# 公共字体的许可文本仍入库。示例按作品类型分层。
 examples/*/*/assets/media/
 
 # 示例的合成音效同理：`assets/sound-recipe.json` 是生成配方（入库），

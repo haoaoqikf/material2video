@@ -4,7 +4,7 @@
 
 ## 素材采用与署名
 
-口播配实拍或外部素材使用 `documentary-edit`。逐段匹配文案里的对象、动作、过程与情绪，通用画面优先查 Pexels 和 Pixabay，按缺口扩展到其他公开来源。具体事实优先核对原件，选材见[制作指导](../../.agents/skills/material2video/references/visual-material-selection.md#观点旁白与意境素材)。
+当前不支持以口播为主线、配实拍或外部素材剪辑成片的形态。
 
 人物不设默认限制。按本项目的素材采用政策，只有权利人明确禁止当前用途才不用，平台条款等作为风险记录。画面标注、片尾编排及必要署名见[素材采用与署名](../../.agents/skills/material2video/references/material-sourcing.md#5-采用政策与署名)。
 

@@ -14,4 +14,4 @@
 
 - [实测快速开始](../../README.md#三分钟做出第一条视频)与[编码助手十秒任务](../agent-quickstart.md)。
 - [贡献与发布流程](../../CONTRIBUTING.md)与 [v0.1.0 首发说明](../release-notes/v0.1.0.md)。
-- [土星环镜头：从材料到成片](../blog/01-solar-system-shot.md)与[三柱对比：改一个概率参数](../blog/02-luck-probability.md)。
+- [土星环镜头：从材料到成片](../blog/01-solar-system-shot.md)。

@@ -37,7 +37,7 @@ ACL 只有 `SYSTEM` / `Administrators` / `OWNER RIGHTS` 且关闭继承；文件
 它回答的是「这支片子是哪一版资产渲的」，因为成片不入库、也没有别的东西会提醒你它
 已经落后于源码：实测发生过两支作品的成片比动效重写早了几个小时，仍然带着被修掉的
 旧曲线，看上去却仍然是「上次验收通过」的样子。只有正式导出写溯源，预演不写。
-`schemaVersion` 当前为 1。五类共用同一形状，例如：
+`schemaVersion` 当前为 1。三类共用同一形状，例如：
 
 ```json
 {
@@ -54,7 +54,7 @@ ACL 只有 `SYSTEM` / `Administrators` / `OWNER RIGHTS` 且关闭继承；文件
 }
 ```
 
-`type` 是五类之一；`preparedFingerprint` 对应 `outputs/prepared.json`。 `inputs` 记录分镜、实现、来源文件、声音与可达渲染代码的摘要；有声作品另写声音与交付字段。结构化来源经相同的准备记录与溯源机制绑定，不另写专项格式。
+`type` 是三类之一；`preparedFingerprint` 对应 `outputs/prepared.json`。 `inputs` 记录分镜、实现、来源文件、声音与可达渲染代码的摘要；有声作品另写声音与交付字段。结构化来源经相同的准备记录与溯源机制绑定，不另写专项格式。
 
 有声作品的 `audio.masterSampleRate` 与 `audio.masterChannels` 读取实际母版WAV头；旁白为单声道不代表混音母版也是单声道。不要把这些来源字段与最终AAC的采样率、声道数混用。
 
@@ -127,7 +127,7 @@ Python / Node / Remotion / ffmpeg 版本）——两次报告的数字只有在�
 
 ## 一次全片生成与候选保留
 
-`outputs/candidates/<指纹>.mp4` 与同名旁车保存完整候选，`outputs/delivery.json` 保存当前输入/实现/参数绑定、文件摘要、状态及失败原因。检查或交付重试必须复用摘要有效的候选，不能重新编码；旧 preview-record.json 不再参与门禁。五类作品的正式输出统一为 `outputs/video.mp4`。
+`outputs/candidates/<指纹>.mp4` 与同名旁车保存完整候选，`outputs/delivery.json` 保存当前输入/实现/参数绑定、文件摘要、状态及失败原因。检查或交付重试必须复用摘要有效的候选，不能重新编码；旧 preview-record.json 不再参与门禁。三类作品的正式输出统一为 `outputs/video.mp4`。
 
 异常退出留下 `delivery.lock` 时，先确认没有制作进程再移除锁。
 

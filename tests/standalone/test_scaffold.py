@@ -1,4 +1,4 @@
-"""五类初始化生成完整、无开发机依赖的作品。"""
+"""三类初始化生成完整、无开发机依赖的作品。"""
 import json
 from pathlib import Path
 

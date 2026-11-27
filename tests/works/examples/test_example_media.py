@@ -14,7 +14,7 @@ from helpers.examples import EXAMPLE_PATHS
 
 pytestmark = pytest.mark.media
 
-FIXED_EXAMPLES = ("american-science-milestones", "solar-system-journey")
+FIXED_EXAMPLES = ("solar-system-journey",)
 TRANSFORMS = {"copy", "jpeg-q3", "tiff-png", "specular-roughness", "moon-continuous-silent", "generate"}
 
 

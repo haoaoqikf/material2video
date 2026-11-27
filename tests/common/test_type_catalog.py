@@ -1,4 +1,4 @@
-"""五类目录与初始化模板的单一来源。"""
+"""三类目录与初始化模板的单一来源。"""
 from __future__ import annotations
 
 import json
@@ -30,4 +30,4 @@ def test_catalog_rejects_category_old_schema_and_wrong_count(tmp_path):
     check(lambda value: value.update(categories=[]), "只允许")
     check(lambda value: value["types"][0].update(category="old"), "类别")
     check(lambda value: value.update(schemaVersion=2), "schemaVersion")
-    check(lambda value: value["types"].pop(), "五类")
+    check(lambda value: value["types"].pop(), "三类")

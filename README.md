@@ -16,12 +16,10 @@
 | --- | --- | ---: | --- |
 | [复利 40 年](examples/data-evolution/compound-after-20/README.md) | 数据演化 | 38.7 秒 | 年度利息柱从零线生长，前后二十年归为两塔，解释 6.73 倍的差距。 [成片页][video-compound-after-20] |
 | [全球市值前十](examples/data-evolution/global-market-cap-race-portrait/README.md) | 数据演化 | 107.13 秒 | 在竖屏上跟踪 2000–2026 年的排名变化，观察榜首交接与平台叠层留白。 [成片页][video-global-market-cap-race-portrait] |
-| [运气到底是什么](examples/principle-metaphor/luck-on-stage/README.md) | 原理隐喻 | 41 秒 | 从一次命中开始，用飞行标记、概率盘和三柱比较解释预期成功次数。 [成片页][video-luck-on-stage] |
 | [太阳系之旅](examples/spatial-3d/solar-system-journey/README.md) | 三维空间 | 120 秒 | 连续经过十五站，观察地月关系、土星环的视角揭示与外层尺度。 [成片页][video-solar-system-journey] |
-| [从电报到大模型](examples/documentary-edit/american-science-milestones/README.md) | 纪实素材剪辑 | 30 秒 | 从馆藏电报纸带切入，用档案串起十项科技节点，结尾回到纸带。 [成片页][video-american-science-milestones] |
 
 作品集提供静音片段及预览帧。也可以打开任一作品说明，查看它的分镜、设计材料和恢复步骤。 [本地查看作品集](docs/site/README.md)
-五部示例都能作为独立工程恢复和导出。 [随附示例与复现说明](examples/README.md)
+三部示例都能作为独立工程恢复和导出。 [随附示例与复现说明](examples/README.md)
 
 ## 三分钟做出第一条视频
 
@@ -73,14 +71,12 @@ pnpm run render
 
 ## 当前能力
 
-从五类视频中选择起点。五类使用同一套独立工程基础，按作品需要采用场景组件和素材。
+从三类视频中选择起点。三类使用同一套独立工程基础，按作品需要采用场景组件和素材。
 
 <!-- generated:type-catalog:start -->
 - `text-motion`：代码生成文字和图形，侧重排版与动效
 - `data-evolution`：结构化数据的可视化变化
-- `principle-metaphor`：程序生成物体和场景，说明抽象原理
 - `spatial-3d`：三维模型和场景的空间渲染
-- `documentary-edit`：真实视频、照片与档案的叙事剪辑
 <!-- generated:type-catalog:end -->
 
 可以制作代码画面，也可以剪辑登记过的真实媒体。地图轨迹和情境叙事可用作表现手法。
@@ -111,6 +107,4 @@ Remotion 独立授权，其他另有许可标注的内容沿用各自声明。
 [video-gallery]: https://haoaoqikf.github.io/material2video/
 [video-compound-after-20]: https://haoaoqikf.github.io/material2video/work-compound.html
 [video-global-market-cap-race-portrait]: https://haoaoqikf.github.io/material2video/work-market-cap.html
-[video-luck-on-stage]: https://haoaoqikf.github.io/material2video/work-luck-on-stage.html
 [video-solar-system-journey]: https://haoaoqikf.github.io/material2video/work-solar-system.html
-[video-american-science-milestones]: https://haoaoqikf.github.io/material2video/work-american-science.html

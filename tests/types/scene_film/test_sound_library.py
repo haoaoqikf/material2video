@@ -379,13 +379,12 @@ def test_default_playback_preserves_third_party_stereo(tmp_path):
     assert not any(samples[::2]) and energy(samples[1::2]) > 1000
 
 
-def test_example_exercise_recipe_is_importable(tmp_path):
-    from helpers.scene_film import ROOT
-    file = ROOT / "examples/documentary-edit/american-science-milestones/assets/sound-exercise.json"
-    data = json.loads(file.read_text(encoding="utf-8"))
-    library.import_assets(tmp_path, data, base=file.parent)
-    assets, _ = library.resolve(tmp_path)
-    assert set(assets) == {"typing-demo", "spark-demo"}
+def test_multiple_generated_sounds_are_importable(tmp_path):
+    root, _ = project(tmp_path)
+    data = manifest(generated("typing", eventsMs=[100, 280]), generated("spark", "spark"))
+    library.import_assets(root, data, base=root)
+    assets, _ = library.resolve(root)
+    assert set(assets) == {"typing", "spark"}
 
 
 def test_first_import_invalidates_prepared_absence(tmp_path, monkeypatch):

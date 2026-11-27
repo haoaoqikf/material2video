@@ -23,7 +23,7 @@ from film_runtime.engine.subtitles import cues_from_words
 logger = logging.getLogger(__name__)
 GENERATOR_VERSION = 1
 
-#: 通用后端及底层调用的缺省值；纪实口播在作品级另选默认后端。
+#: 作品与底层合成共用的缺省后端。
 DEFAULT_BACKEND = "edge-tts"
 DEFAULT_RATE = "+0%"
 BACKENDS = (DEFAULT_BACKEND, "kokoro", "qwen3-tts")
@@ -52,10 +52,6 @@ def _check_voice(voice: str, backend: str) -> None:
         raise VideoError(f"{backend} 的音色名必须形如 {example}，实际为 {voice!r}")
 
 
-def default_backend(project: dict) -> str:
-    return "kokoro" if project.get("type") == "documentary-edit" else DEFAULT_BACKEND
-
-
 def settings(project: dict, *, backend: str | None = None) -> dict:
     """读取并校验作品级 TTS 配置。
 
@@ -70,7 +66,7 @@ def settings(project: dict, *, backend: str | None = None) -> dict:
     if unknown:
         raise VideoError(f"tts 存在未知字段：{'、'.join(sorted(unknown))}")
     result = {}
-    declared_backend = declared.get("backend", default_backend(project))
+    declared_backend = declared.get("backend", DEFAULT_BACKEND)
     if declared_backend not in BACKENDS:
         raise VideoError(f"不支持的 TTS 后端：{declared_backend!r}；当前可用：{'、'.join(BACKENDS)}")
     result["backend"] = declared_backend
@@ -116,7 +112,7 @@ def resolve(project: dict, *, voice: str | None = None, rate: str | None = None,
             backend: str | None = None) -> tuple[str, str]:
     """音色必须显式选择；语速独立按命令行、作品、默认值解析。"""
     configured = settings(project, backend=backend)
-    actual_backend = backend or configured.get("backend", default_backend(project))
+    actual_backend = backend or configured.get("backend", DEFAULT_BACKEND)
     actual_voice = voice if voice is not None else configured.get("voice")
     actual_rate = rate if rate is not None else configured.get("rate", DEFAULT_RATE)
     if actual_voice is None:
@@ -141,7 +137,7 @@ def preparation(project: dict, texts: list[str], *, voice: str | None = None,
     if not any(text.strip() for text in texts):
         return {}
     configured = settings(project, backend=backend)
-    actual_backend = backend or configured.get("backend", default_backend(project))
+    actual_backend = backend or configured.get("backend", DEFAULT_BACKEND)
     actual_voice, actual_rate = resolve(project, voice=voice, rate=rate, backend=actual_backend)
     selection = configured.get("selection") if voice is None else None
     if selection and selection["narrationSha256"] != narration_digest(texts):

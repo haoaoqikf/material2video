@@ -40,9 +40,7 @@
   "types": {
     "text-motion": "references/stage-design.md",
     "data-evolution": "references/stage-design.md",
-    "principle-metaphor": "references/stage-design.md",
-    "spatial-3d": "references/stage-design.md",
-    "documentary-edit": "references/stage-design.md"
+    "spatial-3d": "references/stage-design.md"
   },
   "conditional": [
     {

@@ -78,12 +78,12 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     if "style" in data:
         raise M2VError("project.style 已移除；请用新版场景组件重新编排")
     if "category" in data:
-        raise M2VError("project.category 类别层已移除；请只保留五类 type")
+        raise M2VError("project.category 类别层已移除；请只保留三类 type")
     if not isinstance(data.get("type"), str) or not data["type"].strip():
         raise M2VError("project.json 必须声明非空的视频类型 type")
     from m2v.type_system.catalog import catalog
     if not catalog().has(data["type"]):
-        raise M2VError(f"未知视频类型：{data['type']}；运行 m2v types 查看五类视频")
+        raise M2VError(f"未知视频类型：{data['type']}；运行 m2v types 查看三类视频")
     if not isinstance(data.get("id"), str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,62}", data["id"]):
         raise M2VError("作品 id 必须为 1 至 63 位小写字母、数字或连字符")
     materials = data.get("materials")
@@ -157,7 +157,7 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
         raise M2VError("准备记录损坏或被修改；请重新 prepare")
     prepared["preparedFingerprint"] = expected
     if type(prepared.get("contractVersion")) is not int or prepared["contractVersion"] != 3 or "style" in prepared:
-        raise M2VError("旧准备记录不能用于五类视频；请重新 prepare")
+        raise M2VError("旧准备记录不能用于三类视频；请重新 prepare")
     if prepared.get("projectId") != project["id"] or prepared.get("type") != project["type"]:
         raise M2VError("准备记录与当前作品不匹配；请重新 prepare")
     expected_fps = project_fps(root, project)

@@ -73,7 +73,7 @@ DOM/SVG 标记用于定位对象与排查几何，不能证明最终像素的可
 
 ## 幕内事件查询
 
-五类作品的场景从 `CodeSceneProps.eventFrames` 取得 prepare 解析的本幕事件帧表；无事件时省略。用本地 `createSceneEvents` 查询，不在动画和声音中重复写同一时刻：
+三类作品的场景从 `CodeSceneProps.eventFrames` 取得 prepare 解析的本幕事件帧表；无事件时省略。用本地 `createSceneEvents` 查询，不在动画和声音中重复写同一时刻：
 
 ```tsx
 const events = useMemo(() => createSceneEvents(config.eventFrames), [config.eventFrames]);
@@ -274,7 +274,7 @@ pure 场景必须通过两道闸门：
 ### 分进程最终渲染
 
 `m2v render --jobs N` 在渲染层按帧区间启动 N 个独立进程，每段解码核对帧数、尺寸与帧率，
-拼接后复核总帧数，最后统一混音。默认 2；内存紧张时显式改为 1，走原有单会话；五类均可使用大于 1。
+拼接后复核总帧数，最后统一混音。默认 2；内存紧张时显式改为 1，走原有单会话；三类均可使用大于 1。
 `--jobs` 不进入候选绑定，改变 jobs 仍可复用同一内容候选。
 
 作品绘制实际横竖画幅的完整不透明画布，重要内容避让 `subtitleSafeArea`；共享层只叠加字幕。
@@ -304,7 +304,7 @@ WebGPU 使用 `RectAreaLight` 时，按 [Three 官方说明](https://threejs.org
 
 ### 共享动效原语
 
-`web/src/code-scene/primitives.ts` 提供五类只做数值映射的共享原语，作品从采用后的本地 `../src/code-scene/primitives`
+`web/src/code-scene/primitives.ts` 提供三类只做数值映射的共享原语，作品从采用后的本地 `../src/code-scene/primitives`
 导入：
 
 | 原语 | 输入 | 输出 |
@@ -337,7 +337,7 @@ WebGPU 使用 `RectAreaLight` 时，按 [Three 官方说明](https://threejs.org
 
 ### 共享动效组件
 
-从已采用的参考开始核对。原理隐喻示例用 [`arcPath`](../../../../web/src/code-scene/motion-components/gauge.tsx) 绘制仪表弧线，纪实示例用 [CSS 变换](../../../../web/src/code-scene/motion-components/styles.ts) 组织章节与字幕之外的画面。金融来源参考使用 [曲线几何](../../../../web/src/code-scene/chart-geometry.ts)。图示、公式、图标与合成转场见[表达组件与转场](visual-components.md)。
+从已采用的参考开始核对。可用 [`arcPath`](../../../../web/src/code-scene/motion-components/gauge.tsx) 绘制仪表弧线，或用 [CSS 变换](../../../../web/src/code-scene/motion-components/styles.ts) 组织章节与字幕之外的画面。金融来源参考使用 [曲线几何](../../../../web/src/code-scene/chart-geometry.ts)。图示、公式、图标与合成转场见[表达组件与转场](visual-components.md)。
 
 - SVG 轴线、标注、路径显示范围和时间轴由作品按实际图形与数据组织。相互比较的元素应共用坐标与数据映射。
 - 排版在采用的字体就绪后核对，按作品实际文字验证中文断行、长标签和手机尺寸表现。

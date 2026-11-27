@@ -1,12 +1,12 @@
 ## 背景
 
-`catalog.json` 已集中五类身份和材料入口。当前主项目和独立运行时均拒绝旧 `project.style`。作品持有场景、字幕、依赖和准备产物。现有评审支持盲审后展示参考、显式改靶、失败闭环和当前候选摘要绑定，可用这些入口承载风格约束。现状及外部证据见 [research.md](research.md)。
+`catalog.json` 已集中三类身份和材料入口。当前主项目和独立运行时均拒绝旧 `project.style`。作品持有场景、字幕、依赖和准备产物。现有评审支持盲审后展示参考、显式改靶、失败闭环和当前候选摘要绑定，可用这些入口承载风格约束。现状及外部证据见 [research.md](research.md)。
 
 ## 1. 默认值和数据形状
 
 类型目录 v4 每项新增 `defaultVisualStyle: {id, revision, spec}`。映射仅在目录源中维护，生成独立模板所用目录、类型表和说明。参数和参考的权威放在实现阶段新增的 `src/m2v/type_system/visual_styles/<id>/<revision>.json`。每个规范含 `id`、`revision`、`displayName`、`palette`、`typography`、`layout`、`graphics`、`motion`、`density`、`banned`、`benchmarks`。参考条目含 `id`、`role`、`url`、证据类型、时间范围或图片标识及预期 SHA-256。仅登记五个默认规范，发布修订不可原地改写。新增规范由后续显式项目更新采用，已初始化的工程按自己的快照运行。
 
-`m2v init --type ... --project ...` 从目录取默认值，复制规范到作品 `design/visual-styles/`、计算原文件字节的 SHA-256，并从同一规范生成对应类型最小开场参数。静态模板占位采用 `text-motion` 的真实默认，同一初始化路径按实际类型重建清单与开场。作品带有随模板发布的默认索引（五类的 ID、修订、SHA-256），用于校验默认来源。只分发本作品实际使用的完整本地规范。下面是一个示例，哈希用占位值。
+`m2v init --type ... --project ...` 从目录取默认值，复制规范到作品 `design/visual-styles/`、计算原文件字节的 SHA-256，并从同一规范生成对应类型最小开场参数。静态模板占位采用 `text-motion` 的真实默认，同一初始化路径按实际类型重建清单与开场。作品带有随模板发布的默认索引（三类的 ID、修订、SHA-256），用于校验默认来源。只分发本作品实际使用的完整本地规范。下面是一个示例，哈希用占位值。
 
 ```json
 {
@@ -24,7 +24,7 @@
 }
 ```
 
-作品 JSON 负责选择和绑定，机器规范负责规则，不在 Markdown 或分镜中重复可执行数值。用现有本地引用边界拒绝绝对路径、越界、符号链接逃逸和网络规范；离线核对快照与项目捆绑的索引。参考媒体用于研究及对照，遵循既有许可、摘要和封存规则，出片不读取它们。默认的参考缺证以 `insufficient` 进入验收，预演和取证仍可运行。类型、目录和场景路由继续由现有五类决定。
+作品 JSON 负责选择和绑定，机器规范负责规则，不在 Markdown 或分镜中重复可执行数值。用现有本地引用边界拒绝绝对路径、越界、符号链接逃逸和网络规范；离线核对快照与项目捆绑的索引。参考媒体用于研究及对照，遵循既有许可、摘要和封存规则，出片不读取它们。默认的参考缺证以 `insufficient` 进入验收，预演和取证仍可运行。类型、目录和场景路由继续由现有三类决定。
 
 执行值集中于作品自有的单一参数来源。同一作品的共享 CSS 可由本地规范生成一个无条件的 `@theme static`，生成结果在校验时核对，源场景继续按现有的 `var(--m2v-*)`／`var(--fig-*)` 读取。单场覆盖由该场显式引入自己用到的本地值，全片覆盖以作品本地实现切换；各自只定义一次。React、SVG 或三维代码显式消费所需值。作用域属性一旦漏挂会导致变量静默回退，故继续拒绝 `data-m2v-preset`、`data-m2v-theme`、`data-m2v-style-pack`、`themes.json` 与相应旧运行时解析。`visualStyle` 与设计文档本身当前均不渲染，画面由本地代码消费已落地的值。
 
@@ -52,7 +52,7 @@
 ### 实施文件与命令清单
 
 - 类型／初始化／主项目校验 6 处。修改 `src/m2v/type_system/catalog.json`、`src/m2v/type_system/catalog.py`、`src/m2v/core/project.py`、`src/m2v/standalone/scaffold.py`、`src/m2v/cli.py`，新增 `src/m2v/type_system/visual_styles/`。主项目只验证清单形状、分发完整性和委托结果。
-- 独立校验与 QA 7 处。以 `templates/standalone/runtime/python/film_runtime/` 为根，修改 `catalog.py`、`core/project.py`、`cli.py`、`engine/qa.py`、`engine/qa_inspection.py`、`types/scene_film/code_scenes/capture.py`，新增 `core/visual_style.py`。同步本地 `project.json`、`DESIGN.md`、`design/`、`scenes/opening.tsx`、按需的本地样式与五例代码。复用 `core/schema.py`、`core/validate.py` 的既有校验模式，文件本身无需新规则。主项目 `engine/output_validation.py` 继续只检查成片文件完整性。
+- 独立校验与 QA 7 处。以 `templates/standalone/runtime/python/film_runtime/` 为根，修改 `catalog.py`、`core/project.py`、`cli.py`、`engine/qa.py`、`engine/qa_inspection.py`、`types/scene_film/code_scenes/capture.py`，新增 `core/visual_style.py`。同步本地 `project.json`、`DESIGN.md`、`design/`、`scenes/opening.tsx`、按需的本地样式与三例代码。复用 `core/schema.py`、`core/validate.py` 的既有校验模式，文件本身无需新规则。主项目 `engine/output_validation.py` 继续只检查成片文件完整性。
 - 评审与完成 5 处。修改 `src/m2v/production/` 的 `review_tasks.py`、`reviews.py`、`film_review.py`、`ledger.py`，以及分发类型列表、校验和委托的 `src/m2v/commands.py`。核对现有完成调用方。沿用 `m2v review pack`、`review import`、`review retarget --file`、`m2v status`。`validate`、`lookdev`、`qa` 输出增加风格诊断，无需新命令。
 - Skill 18 处。主 `SKILL.md` 及 `references/` 下的 `stage-research.md`、`scene-design.md`、`stage-design.md`、`design-samples.md`、`production-workflow.md`、`video-revision.md`、`reference-video-analysis.md`、`review-contract.md`、`review-protocol.md`、`subagent-review.md`、`visual-review-rubric.md` 改入口、角色和证据。`paths.md`、`prepared-and-subtitles.md`、`building-construction-video.md`、`financial-timeseries-video.md`、`vehicle-showcase-video.md` 同步版本引用。`visual-material-selection.md` 的镜头一致性补充生效风格链接。同步 `README.md`、`ARCHITECTURE.md`、`docs/reference/{README,project-model}.md`、`openspec/config.yaml`、模板 `RESEARCH.md` 和主规格 Purpose 中过时的范围表述。
 - 定向测试覆盖 12 个文件。计划修改 `tests/common/{test_type_catalog,test_schema,test_qa_inspection,test_review_targets,test_media_reviews,test_film_review,test_guidance_routes}.py`、`tests/standalone/{test_scaffold,test_execution_contract}.py`、`tests/works/examples/test_examples_v9.py`，新增 `tests/common/test_visual_style.py`。用现有 `tests/common/test_frames_subtitle_style.py` 做柔光回归，如有必要同步 v4 夹具。共享模板镜像测试或夹具以项目全局搜索确认并同步。
@@ -75,8 +75,8 @@
 
 ## 5. 一次性迁移
 
-1. 冻结确认后的规范与外部参考证据，落实五类起步、双入口、失败门禁及参考绑定。按明确内容根、现有交付和可编辑材料建立唯一清册。当前在仓库 `videos/<type>/<slug>/` 的两级目录查到 17 份 `project.json`，其中 6 份 project v3 / 分镜 v9（5 数据、1 图文），另 11 份是旧身份或旧契约。当前未发现环境变量配置的外部内容根，其他路径待明确后盘点。进一步核对可重复作品、活动会话和登记交付。
-2. 五部示例逐个重编排，保住事实、场次、时间轴、必要展示和现有音轨契约。复利换为 Keynote 明度、尺度和图形构造，保留本金归塔逻辑、用户指定柱增长、原声与双语字幕。竖屏市值榜用 Keynote 深底与平面数据标记重做榜首交接，保留全部名次、平台安全区与静音。运气例把球、命中和因果改为几何矢量语法，红金语义用规范的两个强调角色校准。太阳系保留连续空间、自然材质及主要镜头任务，统一标签、比例和空间提示；纪实例保留档案、事件声音和历史事实，校准证据优先的剪切与标签，保留有叙事职责的纸带。
+1. 冻结确认后的规范与外部参考证据，落实三类起步、双入口、失败门禁及参考绑定。按明确内容根、现有交付和可编辑材料建立唯一清册。当前在仓库 `videos/<type>/<slug>/` 的两级目录查到 17 份 `project.json`，其中 6 份 project v3 / 分镜 v9（5 数据、1 图文），另 11 份是旧身份或旧契约。当前未发现环境变量配置的外部内容根，其他路径待明确后盘点。进一步核对可重复作品、活动会话和登记交付。
+2. 三部示例逐个重编排，保住事实、场次、时间轴、必要展示和现有音轨契约。复利换为 Keynote 明度、尺度和图形构造，保留本金归塔逻辑、用户指定柱增长、原声与双语字幕。竖屏市值榜用 Keynote 深底与平面数据标记重做榜首交接，保留全部名次、平台安全区与静音。太阳系保留连续空间、自然材质及主要镜头任务，统一标签、比例和空间提示。
 3. 当前六个 v3 工程纳入一次性工作清册，挨个保留题材、可编辑源与已有明确用户决定，按新契约取证。五个数据项目为 `apple-since-2007`、`china-us-market-cap-top10`、`electricity-generation-race-portrait`、`gdp-1980-present`、`gdp-world-top10-60s`，图文项目为 `material-runtime-check-20261115`。十一份旧工程是六个旧金融源、四个 `general` 和一个旧汽车例。判为现役且有源的逐部重编排到相应类型，旧金融归数据，旧汽车归三维，四个 `general` 按现存场景内容与音画职责定类。确认是退役、重复副本或仅存 MP4 的列为历史或缺源，记录理由和路径，按项目历史契约个别处理，不批量用兼容映射转换，也不宣称已验收。
 4. 按项目生产锁准备验收候选。以当前独立评审、技术 QA、完整整片复核和摘要通过后替换成片，再成组清理旧基线、专属旁车、清单、记录副本和源码快照，旧视频基线保留数为 0。保留当前工程、素材、原始研究、评审原件和问题记录。原件缺失注明不可复核。失败或缺资源时保持项目未完成与原交付的实际状态，禁止新版本冒充旧片。忽略的作品与素材继续不纳入 Git。
 
@@ -84,10 +84,10 @@
 
 | 改动 | 定向检查和通过证据 |
 | --- | --- |
-| 目录和项目 v4 | `test_type_catalog.py` 核五类唯一默认与版本拒绝；`test_scaffold.py` 核初始化一一对应及移出仓库；`test_schema.py`、`test_execution_contract.py` 核旧项目、准备版本和路径失败 |
+| 目录和项目 v4 | `test_type_catalog.py` 核三类唯一默认与版本拒绝；`test_scaffold.py` 核初始化一一对应及移出仓库；`test_schema.py`、`test_execution_contract.py` 核旧项目、准备版本和路径失败 |
 | 覆盖与机检 | 新 `test_visual_style.py` 核缺授权、时间、重复或不存在范围、错摘要、规则白名单与禁用扫描，亦测伪造声明和实绘不符；`test_qa_inspection.py` 用选定节点核代表帧、过程抽样、稳定态阈值及失败可定位 |
 | 评审和改靶 | `test_review_targets.py`、`test_media_reviews.py`、`test_film_review.py` 核已封存目标、盲包隔离、过期诊断、错范围、失败不可绕过及正式完成绑定；用被挑中的代表帧和适用过程独立观察，文件与报告有当前摘要 |
-| 示例和指南 | `test_examples_v9.py` 验五例及分镜 v9，分别脱库恢复、校验、准备、短预演和完整技术导出，按既有职责复核受影响画面与过程；临时图文工程覆盖第五类初始化，固定示例清单照旧；`test_guidance_routes.py` 与文档链接和 JSON 样例一并核对 |
+| 示例和指南 | `test_examples_v9.py` 验三例及分镜 v9，分别脱库恢复、校验、准备、短预演和完整技术导出，按既有职责复核受影响画面与过程；临时图文工程覆盖第三类初始化，沿用当前三部示例；`test_guidance_routes.py` 与文档链接和 JSON 样例一并核对 |
 | 渲染与素材不回归 | 保持同输入同帧可复现、30/60 fps 原契约、帧序及并行独立、镜头长度及音轨规则、字幕逐帧实绘柔光与字号几何、素材可追溯与采用政策。定点用 `lookdev --det`、`test_frames_subtitle_style.py` 相关节点、解码帧数/顺序、字幕换句和明暗风险帧、素材摘要以及当前输出溯源核证。保持失败样本不报告完成 |
 
 实施验证按影响范围选择。仅在对应测试文件内补必要的媒体或浏览器节点，保留执行清单、版本和前后摘要。正式对照沿现有评审风险和帧/信号证据，不为风格另设轮次。
@@ -95,5 +95,5 @@
 ## 7. 风险与待用户决定
 
 - **确认四个待定默认**。推荐一次确认四个风格族和固定参考方向；Apple Keynote Presentation Style 已按用户决定写入，节奏与色板阈值是待验证的项目取值。
-- **确认有历史明显不同美术的作品是否申请保留**。建议五例全部展示各自默认，现役作品按默认迁移。若确需某部存量作品沿用原风格，请明确作品及范围，以授权覆盖办理。已有可追溯并明确适用于当前范围的硬约束照常保存，历史艺术采用记录需要判断其是否由用户明确指定。
+- **确认有历史明显不同美术的作品是否申请保留**。建议三例全部展示各自默认，现役作品按默认迁移。若确需某部存量作品沿用原风格，请明确作品及范围，以授权覆盖办理。已有可追溯并明确适用于当前范围的硬约束照常保存，历史艺术采用记录需要判断其是否由用户明确指定。
 - 参考可取得性、屏幕取样假阳性和存量工时属于实施风险。冻结可恢复的官方证据并校验摘要，纯色 ROI 用已知样本校准，按项目锁逐部验收。缺证、缺资源或未分类时如实留在清册，不降低门禁。

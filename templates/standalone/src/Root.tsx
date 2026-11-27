@@ -6,7 +6,7 @@ import { DEFAULT_FRAME } from './frames';
 import './styles/index.css';
 
 /**
- * 五类作品共用一个 composition。
+ * 三类作品共用一个 composition。
  *
  * 时长、帧率与尺寸都从作品材料推导，**不在注册时写死**：材料是内容层的
  * 单一真源，画面参数必须由它推导，而不是两处维护。注册时的时长只是占位。

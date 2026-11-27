@@ -89,7 +89,7 @@ def current(root: Path, project: dict) -> dict:
     prepared = load_current_prepared(root, project)
     if (prepared.get("compositionId") != "SceneFilm" or prepared["props"].get("version") != 9
             or not 1 <= prepared["durationInFrames"] <= 600 * prepared["fps"]):
-        raise VideoError("旧准备记录不能用于 v9 五类视频；请重新设计并 prepare")
+        raise VideoError("旧准备记录不能用于 v9 三类视频；请重新设计并 prepare")
     if prepared["inputs"].get("productionContract") != "standalone-v3":
         raise VideoError("旧制作契约准备记录已失效；请重新 prepare")
     actual = remotion.build_input_fingerprint(workspace_root=root.parent)["digest"]

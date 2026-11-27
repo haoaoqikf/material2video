@@ -1,23 +1,23 @@
 # 架构与模块职责
 
-Material2Video 提供制作指导、工程生成和可选制作管理。v3 作品拥有自己的 Python 准备／音频／采集实现和 Web 场景，Remotion 的本地 `SceneFilm` composition 合成片段、转场和字幕。五类共用生成基础，类型决定默认目录与制作指南，不强制额外组件或依赖。
+Material2Video 提供制作指导、工程生成和可选制作管理。v3 作品拥有自己的 Python 准备／音频／采集实现和 Web 场景，Remotion 的本地 `SceneFilm` composition 合成片段、转场和字幕。三类共用生成基础，类型决定默认目录与制作指南，不强制额外组件或依赖。
 
 ## 代码分层
 
 | 层 | 位置 | 职责 |
 |---|---|---|
-| 管理契约 | `src/m2v/core/`、`type_system/` | project v3、五类目录、实际输入／媒体复核与安全边界 |
+| 管理契约 | `src/m2v/core/`、`type_system/` | project v3、三类目录、实际输入／媒体复核与安全边界 |
 | 工程生成与委托 | `src/m2v/standalone/` | 创建时复制完整模板；以作品环境执行本地协议，收回取消或超时的进程树 |
 | 独立基础模板 | `templates/standalone/` | 本地运行源码、精确依赖及锁、字体恢复、逐帧宿主和成片合成；生成后不再读取模板 |
 | 制作管理 | `src/m2v/types/scene_film/`、`engine/`、`production/` | 分镜 v9 校验、作品本地执行协议、lookdev／时间线／QA 委托、评审、问题、制作证据与作品存储清理 |
 | 结构化来源 | `src/m2v/types/financial/`、`building_construction/`、`vehicle_showcase/` | 金融行情与投资计算、建筑构件与步骤、汽车模型与镜头数据；只由统一分镜引用 |
 | 素材工作层 | `src/m2v/materials/` | 需求/来源/媒体/索引/候选/选择/凭据契约，SQLite 权威库与内容寻址对象，受控网络/平台/网页获取，字幕/转录/OCR/镜头/文本/视觉索引与检索，预览、精裁、作品导入和显式库清理；制作期工具，不是作品运行时依赖 |
 | Web 参考源码 | `web/src/code-scene/`、`web/src/scene-film/`、`web/src/types/` | 可选组件的采用参考与仓库测试夹具；不是作品运行时，也没有公开 SDK 入口 |
-| 作品 | `videos/<type>/<slug>/`、`examples/<type>/<slug>/` | 分镜、源文、场景代码与素材；五部随附示例的源码入库 |
+| 作品 | `videos/<type>/<slug>/`、`examples/<type>/<slug>/` | 分镜、源文、场景代码与素材；三部随附示例的源码入库 |
 
 ## 依赖与材料边界
 
-`src/m2v/type_system/catalog.json` 是五类名称、说明和初始化分镜的单一来源；没有类别或风格注册。`registry.py` 把五类接到本地委托适配器。`project.json` 只接受 v3、五类 `type` 和 `materials.storyboard`；`runtime` 是接入 m2v 的可选本地命令数组，作品直接运行无需该管理协议。准备记录绑定作品本地源码、依赖锁、字体、媒体和实际构建输入；主项目包或参考组件的更新不进入作品媒体身份。旧执行契约明确拒绝。
+`src/m2v/type_system/catalog.json` 是三类名称、说明和初始化分镜的单一来源；没有类别或风格注册。`registry.py` 把三类接到本地委托适配器。`project.json` 只接受 v3、三类 `type` 和 `materials.storyboard`；`runtime` 是接入 m2v 的可选本地命令数组，作品直接运行无需该管理协议。准备记录绑定作品本地源码、依赖锁、字体、媒体和实际构建输入；主项目包或参考组件的更新不进入作品媒体身份。旧执行契约明确拒绝。
 
 新工程场景只从作品自身目录与本地声明的精确第三方依赖导入；本地构建器拒绝 `m2v/*`、越界链接、父工程依赖兜底和机器绝对路径。模板的本地字体登记与恢复随工程生成，字体二进制不入库。`src/m2v/production/dependencies.py` 只绑定作品可达源码、资源和本地控制实现；动态引用保守扩大作品内范围，目录联接不能扩大到作品外。存量 `web/` 组件保留为可复制采用的参考源码和测试夹具；其公开 SDK 总入口、全局依赖登记与仓库场景构建映射已移除，作品构建器拒绝 `m2v/*`。主项目不再保留准备／渲染实现；构建、采集、合成与 QA 只存在于模板和作品运行时。
 

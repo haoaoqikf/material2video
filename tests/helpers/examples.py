@@ -1,4 +1,4 @@
-"""五类视频随附示例的唯一测试清单。"""
+"""随附独立示例的唯一测试清单。"""
 from __future__ import annotations
 from pathlib import Path
 
@@ -7,9 +7,7 @@ EXAMPLES = ROOT / "examples"
 TYPE_EXAMPLES: dict[str, tuple[str, ...]] = {
     "text-motion": (),
     "data-evolution": ("compound-after-20", "global-market-cap-race-portrait"),
-    "principle-metaphor": ("luck-on-stage",),
     "spatial-3d": ("solar-system-journey",),
-    "documentary-edit": ("american-science-milestones",),
 }
 EXAMPLE_PATHS: dict[str, Path] = {
     slug: EXAMPLES / kind / slug

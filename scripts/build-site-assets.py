@@ -33,16 +33,9 @@ WORKS = (
     # 23/56.6/58/61/106s: Earth and Oort establish scale. At 58s Saturn's
     # rings and label both read clearly. 56.6–65.6s shows the edge-on reveal.
     Work("solar-system", "spatial-3d/solar-system-journey/outputs/video.mp4", 58, 56.6),
-    # 13.6/14.7/16.7/18.9/21.8s: 18.9s has a settled gold 30% and a full
-    # subtitle. Starting at 13.6s captures the rise from 10% and the first bar.
-    Work("luck-on-stage", "principle-metaphor/luck-on-stage/outputs/video.mp4", 18.9, 13.6),
     # 19.6/22/24.5/27.5/34s: 19.6s is mostly empty. At 27.5s the gold
     # columns and bilingual subtitle are visible. 21–30s builds both halves.
     Work("compound", "data-evolution/compound-after-20/outputs/video.mp4", 27.5, 21),
-    # 2.2/4.6/6.6/9/13.8s: the stable 6.6s first-flight frame has a clear
-    # silhouette and title. 0.4–8.4s shows paper tape, telephone and flight,
-    # then cuts to the next archival chapter before the clip ends.
-    Work("american-science", "documentary-edit/american-science-milestones/outputs/video.mp4", 6.6, 0.4, 8),
     # 0.2/0.9/1.6s within the 1.93s preview: 0.9s shows both leaders in
     # their own cards. The preview is too short for a gallery clip.
     Work("market-cap", "data-evolution/global-market-cap-race-portrait/outputs/previews/video.mp4", 0.9),
@@ -96,13 +89,15 @@ def save_social_preview(directory: Path) -> None:
         (54, 213), "把文章、数据和\n素材做成可编辑的\n短视频。",
         font=headline, fill="#f5f4fa", spacing=13,
     )
-    for name, size, position in (
-        ("hero.jpg", (640, 360), (586, 42)),
-        ("poster-luck-on-stage.jpg", (312, 176), (586, 418)),
-        ("poster-compound.jpg", (312, 176), (914, 418)),
+    for name, size, position, vertical_center in (
+        ("hero.jpg", (640, 360), (586, 42), 0.5),
+        # Keep both leaders visible when cropping the portrait poster.
+        ("poster-market-cap.jpg", (312, 176), (586, 418), 0.18),
+        ("poster-compound.jpg", (312, 176), (914, 418), 0.5),
     ):
         with Image.open(directory / name) as frame:
-            canvas.paste(ImageOps.fit(frame, size, Image.Resampling.LANCZOS), position)
+            crop = ImageOps.fit(frame, size, Image.Resampling.LANCZOS, centering=(0.5, vertical_center))
+            canvas.paste(crop, position)
     canvas.save(directory / "social-preview.png", optimize=True)
 
 

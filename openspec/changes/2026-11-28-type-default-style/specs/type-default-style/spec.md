@@ -1,6 +1,6 @@
 ## Purpose
 
-为五类作品确定可重现的视觉方向、明确变更授权并绑定实际证据。让作者、独立评审者和运行工具使用同一版本的目标，持续检查可量化约束与成片完成度。
+为三类作品确定可重现的视觉方向、明确变更授权并绑定实际证据。让作者、独立评审者和运行工具使用同一版本的目标，持续检查可量化约束与成片完成度。
 
 ## ADDED Requirements
 
@@ -12,9 +12,7 @@
 | --- | --- | --- |
 | `text-motion` | `ibm-2x-kinetic-type@1` | IBM 2x Grid Kinetic Typography |
 | `data-evolution` | `apple-keynote-presentation@1` | Apple Keynote Presentation Style |
-| `principle-metaphor` | `kurzgesagt-vector-explainer@1` | Kurzgesagt Vector Explainer |
 | `spatial-3d` | `nasa-svs-scientific-visualization@1` | NASA SVS Scientific Visualization |
-| `documentary-edit` | `pbs-frontline-evidence-led@1` | PBS FRONTLINE Evidence-led Documentary |
 
 初始化 MUST 把类型默认标识、修订及本地规范身份写入工程 v4，绑定可离线读取的规范副本。类型目录更新 MUST NOT 静默改变已初始化工程的视觉目标。助手 MUST 使用生效规范及其绑定的整体参考。专项素材、内容和实现方案可在规范内按职责比较。
 

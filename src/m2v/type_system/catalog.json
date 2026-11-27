@@ -86,94 +86,10 @@
       ]
     },
     {
-      "name": "principle-metaphor",
-      "description": "原理隐喻",
-      "summary": "程序生成物体和场景，说明抽象原理",
-      "plan": "程序生成物体和场景，说明抽象原理",
-      "skillGuide": "[制作流程](references/production-workflow.md)：研究、设计、制作与验收。",
-      "materials": [
-        {
-          "name": "storyboard",
-          "file": "storyboard.json",
-          "template": {
-            "version": 9,
-            "schemaVersion": 9,
-            "fps": 30,
-            "width": 1920,
-            "height": 1080,
-            "title": "新作品",
-            "input": {
-              "kind": "topic",
-              "topic": "新作品"
-            },
-            "targetSeconds": 3,
-            "scenes": [
-              {
-                "id": "opening",
-                "template": "code",
-                "content": {
-                  "title": "开场",
-                  "entry": "scenes/opening.tsx",
-                  "props": {}
-                },
-                "narrationSegments": [],
-                "keywords": [
-                  "新作品"
-                ],
-                "durationFrames": 90
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
       "name": "spatial-3d",
       "description": "三维空间",
       "summary": "三维模型和场景的空间渲染",
       "plan": "三维模型和场景的空间渲染",
-      "skillGuide": "[制作流程](references/production-workflow.md)：研究、设计、制作与验收。",
-      "materials": [
-        {
-          "name": "storyboard",
-          "file": "storyboard.json",
-          "template": {
-            "version": 9,
-            "schemaVersion": 9,
-            "fps": 30,
-            "width": 1920,
-            "height": 1080,
-            "title": "新作品",
-            "input": {
-              "kind": "topic",
-              "topic": "新作品"
-            },
-            "targetSeconds": 3,
-            "scenes": [
-              {
-                "id": "opening",
-                "template": "code",
-                "content": {
-                  "title": "开场",
-                  "entry": "scenes/opening.tsx",
-                  "props": {}
-                },
-                "narrationSegments": [],
-                "keywords": [
-                  "新作品"
-                ],
-                "durationFrames": 90
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "documentary-edit",
-      "description": "纪实素材剪辑",
-      "summary": "真实视频、照片与档案的叙事剪辑",
-      "plan": "真实视频、照片与档案的叙事剪辑",
       "skillGuide": "[制作流程](references/production-workflow.md)：研究、设计、制作与验收。",
       "materials": [
         {

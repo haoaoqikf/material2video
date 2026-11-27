@@ -16,15 +16,15 @@
 
 ### Requirement: 随附示例全部独立
 
-系统 MUST 在 `examples/<type>/<slug>/` 保留 data-evolution/compound-after-20、data-evolution/global-market-cap-race-portrait、principle-metaphor/luck-on-stage、spatial-3d/solar-system-journey、documentary-edit/american-science-milestones 五部示例。每部 MUST 包含独立工程、恢复说明及生效的类型默认风格，保持主题、场景身份、数学或事实口径、必要视听目标及音轨要求。复利 MUST 保留原克隆音色，由使用者本地提供同一参考 WAV 和音色档案。版本控制 MUST NOT 包含参考录音、参考文本或本地来源路径。MUST NOT 用空场景、静态占位、缩减内容或简化示例替代。每例 MUST 提供脱库构建、真实预演、完整导出技术验证和受影响代表画面及过程复核。图文动效继续可初始化和制作。
+系统 MUST 在 `examples/<type>/<slug>/` 保留 data-evolution/compound-after-20、data-evolution/global-market-cap-race-portrait、spatial-3d/solar-system-journey 三部示例。每部 MUST 包含独立工程、恢复说明及生效的类型默认风格，保持主题、场景身份、数学或事实口径、必要视听目标及音轨要求。复利 MUST 保留原克隆音色，由使用者本地提供同一参考 WAV 和音色档案。版本控制 MUST NOT 包含参考录音、参考文本或本地来源路径。MUST NOT 用空场景、静态占位、缩减内容或简化示例替代。每例 MUST 提供脱库构建、真实预演、完整导出技术验证和受影响代表画面及过程复核。图文动效继续可初始化和制作。
 
 #### Scenario: 独立示例矩阵
-- **WHEN** 逐一复制五例到仓库外并恢复运行
+- **WHEN** 逐一复制三例到仓库外并恢复运行
 - **THEN** 每例可预览与完整导出，按实际使用范围验证三维异步、公式字体、真实媒体、事件音效、旁白、转场及实际风格。
 
 #### Scenario: 示例集合与类型独立
 - **WHEN** 枚举分发示例并初始化图文动效
-- **THEN** 测试和目录仅包含上述五例，图文动效初始化生成完整独立工程。
+- **THEN** 测试和目录仅包含上述三例，图文动效初始化生成完整独立工程。
 
 #### Scenario: 本地恢复复利示例旁白
 - **WHEN** 在仓库外示例副本恢复登记参考 WAV、音色档案、公开权重和字体

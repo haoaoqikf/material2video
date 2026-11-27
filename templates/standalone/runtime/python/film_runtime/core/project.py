@@ -77,7 +77,7 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     if "style" in data:
         raise VideoError("project.style 已移除；请用新版场景组件重新编排")
     if "category" in data:
-        raise VideoError("project.category 类别层已移除；请只保留五类 type")
+        raise VideoError("project.category 类别层已移除；请只保留三类 type")
     if not isinstance(data.get("type"), str) or not data["type"].strip():
         raise VideoError("project.json 必须声明非空的视频类型 type")
     from film_runtime.catalog import catalog
@@ -146,7 +146,7 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
         raise VideoError("准备记录损坏或被修改；请重新 prepare")
     prepared["preparedFingerprint"] = expected
     if type(prepared.get("contractVersion")) is not int or prepared["contractVersion"] != 3 or "style" in prepared:
-        raise VideoError("旧准备记录不能用于五类视频；请重新 prepare")
+        raise VideoError("旧准备记录不能用于三类视频；请重新 prepare")
     if prepared.get("projectId") != project["id"] or prepared.get("type") != project["type"]:
         raise VideoError("准备记录与当前作品不匹配；请重新 prepare")
     expected_fps = project_fps(root, project)

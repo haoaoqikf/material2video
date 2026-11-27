@@ -85,7 +85,7 @@
 
 ### 手机观看字阶
 
-横竖屏的共享字幕默认均为40px，默认样式来自作品 `src/frames.json`；五类作品均可用
+横竖屏的共享字幕默认均为40px，默认样式来自作品 `src/frames.json`；三类作品均可用
 `project.json.output.subtitle.fontSize` 按作品覆盖为24至56的整数，安全区、行高和配色不变，见
 [作品级字幕字号](prepared-and-subtitles.md#作品级字幕字号)。作品须复核手机尺寸下的字幕、正文与主体，不在作品中另画重复字幕。
 

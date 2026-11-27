@@ -1,13 +1,13 @@
-# 五类默认风格调研
+# 三类默认风格调研
 
 调研日期为 2026-11-28。先核查仓库契约，再按「信息载体＋移动观看＋可重复约束」比较各类的两个外部风格族。查阅原发布页、官方指南、原始图片和官方视频有序抽帧。下文逐条注明直接观察、发布者说明和证据缺口。抽帧时间为视频内秒数，稀疏采样只能证明可见状态及先后。未试听，也未运行项目渲染。原始媒体仅临时取证。推荐风格的英文名为项目规范名称，具体数值和禁用规则均是本项目拟定，实施时用原生样片核实。
 
 ## 仓库现状
 
-- [类型目录](../../../src/m2v/type_system/catalog.json) v3 只有五类身份、说明和材料模板。[目录读取](../../../src/m2v/type_system/catalog.py) 在加载时验证目录版本及五类集合，初始化由 [scaffold.py](../../../src/m2v/standalone/scaffold.py) 复制独立模板。[作品加载](../../../src/m2v/core/project.py) 识别 project v3，明确拒绝 `style`，准备记录 v3 已用完整项目数据计算材料指纹。[schema.py](../../../src/m2v/core/schema.py) 提供严格结构校验，[validate.py](../../../src/m2v/core/validate.py) 提供手写基础校验，`src/m2v/core/` 下没有 `design_tokens*`。实际基础 CSS 令牌在 [web/src/styles/tokens.css](../../../web/src/styles/tokens.css) 等本地源码。Keynote 旧名的主规格只约束共享来源场景的实际令牌消费者。
-- [主项目 CLI](../../../src/m2v/cli.py) 与 [独立 CLI](../../../templates/standalone/runtime/python/film_runtime/cli.py) 分工为委托与执行。[成片完整性](../../../src/m2v/engine/output_validation.py) 已核对解码与输出，独立的 [qa.py](../../../templates/standalone/runtime/python/film_runtime/engine/qa.py) 和 [qa_inspection.py](../../../templates/standalone/runtime/python/film_runtime/engine/qa_inspection.py) 才负责实片取样、冻结、字幕与音频等技术证据。开场、[总设计](../../../templates/standalone/DESIGN.md) 和 [场景设计](../../../templates/standalone/design/scenes/opening.md) 是起步材料。测试分散在类型目录、合约、QA、评审和五个示例，文件与后续验证见 [design.md](design.md)。
+- [类型目录](../../../src/m2v/type_system/catalog.json) v3 只有三类身份、说明和材料模板。[目录读取](../../../src/m2v/type_system/catalog.py) 在加载时验证目录版本及三类集合，初始化由 [scaffold.py](../../../src/m2v/standalone/scaffold.py) 复制独立模板。[作品加载](../../../src/m2v/core/project.py) 识别 project v3，明确拒绝 `style`，准备记录 v3 已用完整项目数据计算材料指纹。[schema.py](../../../src/m2v/core/schema.py) 提供严格结构校验，[validate.py](../../../src/m2v/core/validate.py) 提供手写基础校验，`src/m2v/core/` 下没有 `design_tokens*`。实际基础 CSS 令牌在 [web/src/styles/tokens.css](../../../web/src/styles/tokens.css) 等本地源码。Keynote 旧名的主规格只约束共享来源场景的实际令牌消费者。
+- [主项目 CLI](../../../src/m2v/cli.py) 与 [独立 CLI](../../../templates/standalone/runtime/python/film_runtime/cli.py) 分工为委托与执行。[成片完整性](../../../src/m2v/engine/output_validation.py) 已核对解码与输出，独立的 [qa.py](../../../templates/standalone/runtime/python/film_runtime/engine/qa.py) 和 [qa_inspection.py](../../../templates/standalone/runtime/python/film_runtime/engine/qa_inspection.py) 才负责实片取样、冻结、字幕与音频等技术证据。开场、[总设计](../../../templates/standalone/DESIGN.md) 和 [场景设计](../../../templates/standalone/design/scenes/opening.md) 是起步材料。测试分散在类型目录、合约、QA、评审和三个示例，文件与后续验证见 [design.md](design.md)。
 - 旧 [add-style-registry](../archive/2026-10-26-add-style-registry/design.md) 采用 `style.json` 发现、可选 `project.style`、`m2v/style` 导入和整包缓存摘要。随后有 `vibe-night`、`vibe-fable`，又从示例抽出 `doc-archive`（档案与信息叠加）、`count-ledger`（可数物证和状态）、`deep-journey`（深空连续旅程），再加 `dark-proof`（深色论证）。这些能力曾是可选择的包。可核对[三包提案](../archive/2026-10-29-add-three-style-packages-and-migrate-examples/proposal.md)、[寓言规格](../archive/2026-10-28-add-vibe-fable-style-and-examples/specs/vibe-fable-style/spec.md)和[暗场规格](../archive/2026-11-02-add-dark-proof-style-and-sample/specs/dark-proof-style/spec.md)。
-- `ef0cac84` 在[五类统一](../archive/2026-11-07-unify-five-video-types/proposal.md)时删除 `style-registry`、`vibe-fable-style`、`dark-proof-style`、`doc-archive-style`、`count-ledger-style`、`deep-journey-style` 和 `vibe-night-style` 主规格，删除 CLI `m2v styles` 与旧包入口。`openspec/specs/style-registry/` 在本机为空，Git 在该路径下没有当前受控文件。参见[注册表移除增量](../archive/2026-11-07-unify-five-video-types/specs/style-registry/spec.md)。`visual-expression-inspiration` 曾明确写自由采用、融合、自创或跳出，`8d63612a` 删除主规格；资料见[历史增量](../archive/2026-11-07-deepen-style-research-workflow/specs/visual-expression-inspiration/spec.md)。本提案采用固定默认和可验证约束，旧包的设计可用于理解遗留项目。
+- `ef0cac84` 在[当时的五类统一](../archive/2026-11-07-unify-five-video-types/proposal.md)时删除 `style-registry`、`vibe-fable-style`、`dark-proof-style`、`doc-archive-style`、`count-ledger-style`、`deep-journey-style` 和 `vibe-night-style` 主规格，删除 CLI `m2v styles` 与旧包入口。`openspec/specs/style-registry/` 在本机为空，Git 在该路径下没有当前受控文件。参见[注册表移除增量](../archive/2026-11-07-unify-five-video-types/specs/style-registry/spec.md)。`visual-expression-inspiration` 曾明确写自由采用、融合、自创或跳出，`8d63612a` 删除主规格；资料见[历史增量](../archive/2026-11-07-deepen-style-research-workflow/specs/visual-expression-inspiration/spec.md)。本提案采用固定默认和可验证约束，旧包的设计可用于理解遗留项目。
 
 ### AI 现在还能在哪自选风格或标杆
 
@@ -15,7 +15,7 @@
 
 | 位置 | 原文摘录 | 现行含义与拟改 |
 | --- | --- | --- |
-| `openspec/specs/five-video-types/spec.md:11–13` | 「五类仅决定制作指导和默认目录」「不提供类别或风格层」 | 无类型风格默认。改为类型额外指定视觉规范，目录和类型路由维持单层 |
+| `openspec/specs/three-video-types/spec.md` | 「三类仅决定制作指导和默认目录」「不提供类别或风格层」 | 无类型风格默认。改为类型额外指定视觉规范，目录和类型路由维持单层 |
 | `openspec/specs/reference-style-transfer/spec.md:33–35` | 「自主选择标杆」「助手 MUST 自主选择并说明具体参考用途」 | 直接授权自选。改为读取类型整体标杆 |
 | 同文件 `:49–58` | 「用户明确或助手主动采用并承诺」「自主融合风格」 | 允许作者承诺和融合整体方向。改为固定整体目标加专项证据 |
 | `openspec/specs/keynote-design-system/spec.md:7–8,52,70–72` | 「配色、排版、构图与动效由作品代码自行设计」「通用作品需要新的视觉风格」 | 本地执行权限缺少上游风格约束。保留本地实现并受生效规范约束 |
@@ -38,15 +38,13 @@
 | `src/m2v/production/reviews.py:329–339,355` | 「按 conditions 区分整体品质标杆、专项目标与备选/历史比较媒体的用途」 | 提示区分用途，尚未要求自带类型标杆身份 |
 | `src/m2v/cli.py:39,52–54,114–117`、`src/m2v/core/project.py:78–81` | 「列出内置视频类型」「初始化作品目录」「获取、校验抖音参考素材并提取授权音轨」「project.style 已移除」 | 当前没有风格选择 flag。通用参考获取和评审请求可承载作者选择，获取操作本身不指定整体风格 |
 
-### 五个示例的视觉基线
+### 三个示例的视觉基线
 
 | 作品 | 当前设计记录 |
 | --- | --- |
 | `data-evolution/global-market-cap-race-portrait` | 黑底偏轴金属环、冷暖边缘光、等宽数字，主舞台切到排名卡片，手机右侧和底部有暗区，无音轨。[DESIGN.md](../../../examples/data-evolution/global-market-cap-race-portrait/DESIGN.md) |
 | `data-evolution/compound-after-20` | 蓝与琥珀玻璃、共享零线、逐年柱归两塔，原克隆声与双语字幕。[DESIGN.md](../../../examples/data-evolution/compound-after-20/DESIGN.md) |
-| `principle-metaphor/luck-on-stage` | 近黑、米白、金色成功和红色未中。球弧与接触贯穿部分场，其他场用盘、面积和图形说明因果。[DESIGN.md](../../../examples/principle-metaphor/luck-on-stage/DESIGN.md) |
 | `spatial-3d/solar-system-journey` | 深黑、自然天体色、暖白和淡金，侧光、小补光，连续旅程，单列 Cassini、Blue Marble 等专项依据。[DESIGN.md](../../../examples/spatial-3d/solar-system-journey/DESIGN.md) |
-| `documentary-edit/american-science-milestones` | 档案优先，暖纸带、墨色标题、少量铜色，保留档案原光比，硬切安排尺度变化，有事件音效，无旁白和配乐。[DESIGN.md](../../../examples/documentary-edit/american-science-milestones/DESIGN.md) |
 
 ## 共用规范尺度
 
@@ -87,22 +85,6 @@ IBM 方向的网格和进入顺序适合文案、章节和抽象图形占主导�
 5. **动效。** 进场 0.22–0.42 s 缓出，小幅位移或淡入；同一数据对象以身份连续，0.30–0.60 s 对象匹配缓入缓出，异主题硬切或 0.18–0.30 s 交叉淡化。柱长、读数、排名及尺度按同一数据模型和明确时间映射，纯演示进度无过冲，不暗示不存在的测量值。最终结果与必须比较的稳定窗各保留至少 1.4 s。
 6. **信息与禁用。** 一屏一结论、一主图、最多两项辅助说明；完整排行榜可显示任务要求的条目，但只有一处主强调。禁立体透视条、反射玻璃／金属冒充量值、霓虹、装饰渐变和爆炸／翻牌式转场。数据源码、单位与标签都正确且画面达到整体完成度后才通过。
 
-## 原理隐喻 · Kurzgesagt Vector Explainer
-
-### 候选与证据
-
-1. **Kurzgesagt 饱和几何矢量解说，入选。** 官方制作页分开叙述脚本、隐喻草图、矢量插画和配音约束下的动画。实际抽取页面变形虫 0、0.5、1、1.5、2、3 秒，画面中心为青蓝放射形单体、浅青内圈、紫色细胞核和少量点状细节，黑为抽帧显示底，主体无字。中心位置稳定，触肢在各时点显著收放，变化发生在可识别边界内。它是官方展示循环，无法证明整集旁白、停留或镜头转场。固定整体视觉参考用官方制作页和这一单主体状态序列。因果窗口固定补取同一创作者的《How The Immune System ACTUALLY Works》；目前只核到官方发布页，尚无实抽镜头可支持该片的动态结论。[制作过程](https://kurzgesagt.org/what-we-do?visit=videos) · [官方循环原片](https://kurzgesagt.org/amoeba.webm) · [Kurzgesagt 正片](https://www.youtube.com/watch?v=lXfEK8G8CUI)
-2. **TED-Ed 的手作图解与风格随片定制。** 直接看《Visualizing Complex Ideas》官方页面嵌入的封面：左部黄色纸面斜放黑色大标题，右部是格纹底、笔记和手部，标题与手作道具构成两个视觉块。原页用树生长让抽象概念变得具象。视频全流程未取得可抽帧版本，节奏、剪切及片中文字层级均缺证，封面不能代替片内观察。及时深化某个题材很好，整体基调逐片变化较难形成一套默认。[TED-Ed 原课](https://ed.ted.com/lessons/making-a-ted-ed-lesson-visualizing-complex-ideas/digdeeper) · [嵌入视频原封面](https://i.ytimg.com/vi/P50NcJLSJJY/maxresdefault.jpg)
-
-几何造型和稳定身份让数次尝试、传递关系、接触与变形在小屏可追踪。选用 Kurzgesagt 的清楚轮廓和状态显影，角色与故事图形由项目自行设计。
-
-### 可执行草案
-
-- 背景 `#102033`、次层 `#8197AE`、主字 `#F6F2E7` 由暗到明，承载体可用 `#D9E5EF`。强调色最多 2 个，红橙 `#FF806E` 作扰动或未中，金黄 `#FFC85C` 作有效结果；角色一经确定跨场保持。以位置、轮廓和状态变化冗余编码。
-- 标题／对象标签／辅助字号 78／46／32，权重 700／650／500。横 8 栏、竖 4 栏，横／纵安全边距 9%／9%，留白至少 25%。稳定态一主物、最多两类辅物和三个对象名；多个同类计数物复用同形同线宽。
-- 图形采用同一几何家族，明确作用体、受体与结果。箭头只指实际关系，符号或计数贴近对象，必要数轴标尺度和单位。几何角色不能因颜色改变被看作新对象。
-- 进场 0.22–0.40 s 缓出，作用或因果变化 0.35–0.85 s 缓入缓出，先因后果，接触帧与结果状态可用已有事件复查。转场限硬切或 0.25–0.45 s 形状承接，结果静留至少 1.2 s。禁装饰吉祥物／粒子、随机漂浮、霓虹渐变、与物理或逻辑无关的弹性过冲，以及用同步淡入替代因果。
-
 ## 三维空间 · NASA SVS Scientific Visualization
 
 ### 候选与证据
@@ -117,20 +99,6 @@ IBM 方向的网格和进入顺序适合文案、章节和抽象图形占主导�
 - 一对象或一组关系为主，至多两个同时解释的引线，选中构件高亮须有轮廓或清楚标签。保留空间锚点、明确相机与物体各自运动；比例、速度或时间压缩可能误导时按既有小字规则交代。结构比材质噪声优先。
 - 标签进场 0.18–0.32 s 缓出；建立到揭示的镜头过渡 0.70–1.60 s，位置／视线平滑缓入缓出，模型运动按数据或已登记映射。远近交代后静读至少 1.2 s；断地点允许以明确切点及新锚点硬切。禁甩镜、滚转、无动机辉光、镜头污渍和 HUD 噪声，不用假尺度、错位物体或隐藏切换暗示连续空间。
 
-## 纪实素材剪辑 · PBS FRONTLINE Evidence-led Documentary
-
-### 候选与证据
-
-1. **PBS FRONTLINE 证据主导纪实，入选。** 官方《Haiti Deportation Crisis》30 秒预告实际抽取 0.5、2、4、7、10、14、17、20、24、27、29 秒。开头先给广景与航拍，随后是机内人物、现场行走、室外相拥、采访近景、集会和另一处俯拍。天然白衣、天空冷色和室内深灰随场景变化；画面经多次换主体保持证据先行。27 与 29 秒是同一深背景上的居中紧凑白色标题，只有台标用红色。可见较快的镜头序列及末尾静停，抽样不能量出所有切点或证明正片节奏。官方透明度项目显示采访原片和转录可作对照，适合这一体裁的研究方法。固定整体参考使用实际预告，透明度项目仅作证据流程参考。[FRONTLINE 发布页](https://www.pbs.org/wgbh/frontline/announcement/with-rare-on-the-ground-reporting-frontline-investigates-the-haiti-deportation-crisis/) · [官方预告原片](https://www.pbs.org/wgbh/frontline/media/uploads/2026/10/16x9_FLSite_EG_4504_HaitiDeportationCrisis_PROMO.mp4) · [PBS 透明度项目](https://www.pbs.org/standards/blogs/standards-articles/frontline-transparency-project/)
-2. **Ken Burns 历史档案叙事。** PBS《The Civil War》官方档案页实际检查 Fort Corcoran 排列合照及战后 Gettysburg 场景。前者米褐，有木墙与横向长列士兵；后者黑白，三位人物站在空地，树枝留出深度。照片本身没有后加标题，原始色相和构图保留；官方说明还列出照片、绘画、新闻片、现地和采访的组合。此次未取得节目段落可抽帧文件，剪辑节奏和缓推不能从照片推断。它适合档案占主导的历史题材，FRONTLINE 的采访、现场、证件或档案可直接迁移到更广泛的题材。[PBS 系列说明](https://www.pbs.org/kenburns/the-civil-war/about) · [PBS 历史相册](https://www.pbs.org/kenburns/the-civil-war/photo-gallery)
-
-### 可执行草案
-
-- 现场与档案保留原色、可辨细节、材质和原宽高的叙事意义。设计叠加用 `#171819`、`#A2A09B`、`#F4F2ED` 由暗到亮。章节／证据可用一处 `#A43C33` 强调，必要反白确保对比；无信息任务时不加色条。
-- 章节／对象／证据或必要来源字号取 68／44／32，权重 700／600／500，最少文字原则优先。横 12 栏、竖 6 栏，叠加层横向安全 8%、纵向 10%，标签页留白至少 30%；全出血实拍保留主体可辨范围，并在有叠字时留出安静区域。
-- 一镜一证据或一个人物关系，文字不重复旁白。时序图或地图只留必要时间、地点、尺度与证据归属；纪实、档案或示意的区分按现有素材契约。禁品牌台标仿制、无依据标题和数字、模板化下三分之一、装饰渐变、伪档案噪点、强行统一调色及挪用声画制造因果错觉。
-- 优先硬切，确需表时空间隔可淡化 0.20–0.45 s；必要文字入场 0.16–0.28 s 缓出，普通证据镜头参考 1.6–4.0 s，必要时间／证据标稳定至少 1.5 s。静态资料必要时只作 2.0–4.0 s 单轴缓推，保持可读和原画意义；连续实况以动作落点和事实完整为准。禁止三维翻页、闪白、装饰速度坡和为节拍破坏事实窗口。
-
 ## 证据边界与复核
 
 可核对的原媒体 SHA-256 如下。实施时复取同字节或登记实际可核验的参考摘录及其摘要；如果来源变化，先报告缺证，由用户决定是否需要改变整体目标。Apple 视频按官方 HLS 640×360 档下载对应分段，只核对上述时点，正式分段或独立参考材料须补摘要并封存。
@@ -141,13 +109,11 @@ IBM 方向的网格和进入顺序适合文案、章节和抽象图形占主导�
 | Google Material 3 Expressive 头部 | `ce08ad4460230d45dd46bbca4c812317b114b6787a56c2ece54799f42e2e2c8b` |
 | Apple Keynote 主题截图 | `c587679f2f4e0cc9a1eb169d1038ba03254ee5a5212a59741241c0b9414ed6b3` |
 | Apple Keynote 图表截图 | `64217721d24b5b98c291870dc94fd52bdece5691e430c36fc08319b07474e871` |
-| Kurzgesagt 变形虫 | `5132f14dd0dff7524f6c230c5d24717c839e3002845663dd00039a4897719571` |
 | NASA SVS 月球经向天平动 | `6aaef5cf5bcf00d5914b1c880d5eaab8853699c0e162d3e04f4077daca0e8f98` |
 | ESO S2 原片 | `04113276d553c8d0503fd23c909e3012fe1e7fbc6209fcd4fd447745a812852b` |
-| PBS FRONTLINE 预告 | `196051a2d1b7f8b0b1234ea03ab15f8b3c3723483881ffbe917c97a1461411cd` |
 
-Apple Keynote 应用 Magic Move 本轮为官方说明，实际动态观察来自 WWDC 演示。Kurzgesagt 的动态来自官方循环，缺整集时序。NASA 月相直链缺证，同机构的经向天平动已有实际动态。PBS 的动态为官方预告，正片和 Ken Burns 档案候选的节目节奏未验证。TED-Ed 只看原封面与官方说明。IBM 与 Google 已有官方短片的稀疏抽样，所有来源曲线和项目阈值仍需以适用原生试制校准。研究材料不构成项目成片的通过证据。
+Apple Keynote 应用 Magic Move 本轮为官方说明，实际动态观察来自 WWDC 演示。NASA 月相直链缺证，同机构的经向天平动已有实际动态。IBM 与 Google 已有官方短片的稀疏抽样，所有来源曲线和项目阈值仍需以适用原生试制校准。研究材料不构成项目成片的通过证据。
 
 ## 对用户的汇报摘要
 
-建议默认采用 IBM 2x Grid Kinetic Typography（图文）、Apple Keynote Presentation Style（数据，用户已指定）、Kurzgesagt Vector Explainer（隐喻）、NASA SVS Scientific Visualization（三维）及 PBS FRONTLINE Evidence-led Documentary（纪实）。以类型目录映射和作品本地规范快照固定目标，用户指令才可覆盖。项目 v4、目录 v4、准备 v4，分镜保持 v9。量化 QA 与独立世界级评审均须通过。待确认四个待定风格，以及是否明确指定某部存量作品沿用已采用的原风格。提案所列视觉数值待原生验证，外部证据覆盖按各条记录。
+建议默认采用 IBM 2x Grid Kinetic Typography（图文）、Apple Keynote Presentation Style（数据，用户已指定）及 NASA SVS Scientific Visualization（三维）。以类型目录映射和作品本地规范快照固定目标，用户指令才可覆盖。项目 v4、目录 v4、准备 v4，分镜保持 v9。量化 QA 与独立世界级评审均须通过。待确认两个待定风格，以及是否明确指定某部存量作品沿用已采用的原风格。提案所列视觉数值待原生验证，外部证据覆盖按各条记录。

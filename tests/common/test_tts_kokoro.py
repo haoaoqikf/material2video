@@ -37,17 +37,14 @@ def test_preparation_records_actual_backend() -> None:
                         backend="kokoro")
 
 
-def test_documentary_narration_defaults_to_kokoro() -> None:
-    project = {"type": "documentary-edit", "tts": {"voice": "zf_027"}}
-    assert tts.preparation(project, ["你好。"])["backend"] == "kokoro"
-    assert tts.preparation(project, ["你好。"], backend="edge-tts",
-                           voice="zh-CN-XiaoxiaoNeural")["backend"] == "edge-tts"
-    explicit = {"type": "documentary-edit",
-                "tts": {"backend": "edge-tts", "voice": "zh-CN-XiaoxiaoNeural"}}
-    assert tts.preparation(explicit, ["你好。"])["backend"] == "edge-tts"
-    assert tts.preparation({"type": "documentary-edit"}, []) == {}
-    with pytest.raises(M2VError, match="voices --backend kokoro"):
-        tts.preparation({"type": "documentary-edit"}, ["你好。"])
+def test_narration_defaults_to_edge_and_allows_kokoro_override() -> None:
+    project = {"type": "text-motion", "tts": {"voice": "zh-CN-XiaoxiaoNeural"}}
+    assert tts.preparation(project, ["你好。"])["backend"] == "edge-tts"
+    assert tts.preparation(project, ["你好。"], backend="kokoro",
+                           voice="zf_027")["backend"] == "kokoro"
+    assert tts.preparation({"type": "text-motion"}, []) == {}
+    with pytest.raises(M2VError, match="voices --backend edge-tts"):
+        tts.preparation({"type": "text-motion"}, ["你好。"])
 
 
 def test_cache_key_separates_backends() -> None:

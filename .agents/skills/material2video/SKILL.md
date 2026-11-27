@@ -1,6 +1,6 @@
 ---
 name: material2video
-description: 使用统一 m2v 研究、试制、设计、制作与验收五类视频。
+description: 使用统一 m2v 研究、试制、设计、制作与验收三类视频。
 ---
 
 # Material2Video 制作调度
@@ -16,9 +16,7 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 |---|---|
 | `text-motion` | [制作流程](references/production-workflow.md)：研究、设计、制作与验收。 |
 | `data-evolution` | [制作流程](references/production-workflow.md)：研究、设计、制作与验收。 |
-| `principle-metaphor` | [制作流程](references/production-workflow.md)：研究、设计、制作与验收。 |
 | `spatial-3d` | [制作流程](references/production-workflow.md)：研究、设计、制作与验收。 |
-| `documentary-edit` | [制作流程](references/production-workflow.md)：研究、设计、制作与验收。 |
 <!-- generated:type-catalog:end -->
 
 ## 三阶段
@@ -41,8 +39,6 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 ## 条件阅读
 
-五类作品有自身旁白且需要选音时，按[配音指南](references/voice-and-rhythm.md#口播作品的固定默认音色)登记默认的「真人播客女」。
-
-口播配实拍或外部素材归 `documentary-edit`。按[视觉素材选择](references/visual-material-selection.md#观点旁白与意境素材)逐段排镜，按[采用与署名](references/material-sourcing.md#5-采用政策与署名)处理「资料画面」和证据标识。
+三类作品有自身旁白且需要选音时，按[配音指南](references/voice-and-rhythm.md#口播作品的固定默认音色)登记默认的「真人播客女」。
 
 [阅读路由](references/guidance-routes.json)维护触发条件与唯一权威。素材检索读[素材台账](references/material-sourcing.md)，运动实现读[运行契约](references/code-scene-runtime.md#运动实现约定)。改材料后重新 prepare，修复先按帧/信号核对局部效果再汇总全片。命令以[README](../../../README.md)和实际帮助为准。

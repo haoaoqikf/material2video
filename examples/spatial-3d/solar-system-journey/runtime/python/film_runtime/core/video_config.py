@@ -1,4 +1,4 @@
-"""五类作品共享的跨语言帧率配置。"""
+"""三类作品共享的跨语言帧率配置。"""
 import json
 from pathlib import Path
 from film_runtime.core.assets import REPOSITORY_ROOT

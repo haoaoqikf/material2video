@@ -16,12 +16,10 @@ Use a storyboard to organize the content and code to create the visuals. Keep th
 | --- | --- | ---: | --- |
 | [40 Years of Compound Interest](examples/data-evolution/compound-after-20/README.md) | Data evolution | 38.7 s | Interest bars grow from zero, then form two towers that explain the 6.73× difference between the two 20-year periods. [Video page][video-compound-after-20] |
 | [Global Top 10 by Market Cap](examples/data-evolution/global-market-cap-race-portrait/README.md) | Data evolution | 107.13 s | Follow rankings from 2000 to 2026 and see how the lead changes in a portrait layout with room for platform overlays. [Video page][video-global-market-cap-race-portrait] |
-| [What Is Luck?](examples/principle-metaphor/luck-on-stage/README.md) | Principle metaphor | 41 s | A hit, a probability dial, and a three-bar comparison explain the expected number of successes. [Video page][video-luck-on-stage] |
 | [Solar System Journey](examples/spatial-3d/solar-system-journey/README.md) | Spatial 3D | 120 s | Travel through 15 stops, from the Earth–Moon relationship to a reveal of Saturn’s rings and the scale of the outer Solar System. [Video page][video-solar-system-journey] |
-| [From Telegraphs to Large Language Models](examples/documentary-edit/american-science-milestones/README.md) | Documentary edit | 30 s | A museum telegraph tape opens an archival sequence of ten milestones, then reappears in the finale. [Video page][video-american-science-milestones] |
 
 The gallery includes silent excerpts and preview frames. Each example README includes its storyboard, design notes, and recovery steps. [View the gallery locally](docs/site/README.md)
-All five examples can be restored and exported as standalone projects. [Example index and reproduction steps](examples/README.md)
+All three examples can be restored and exported as standalone projects. [Example index and reproduction steps](examples/README.md)
 
 ## Make your first video in three minutes
 
@@ -41,9 +39,7 @@ Five video types share a standalone project foundation. Each project adopts the 
 
 - `text-motion` generates text and graphics in code for typography and motion.
 - `data-evolution` visualizes changes in structured data.
-- `principle-metaphor` uses generated objects and scenes to explain abstract ideas.
 - `spatial-3d` renders 3D models and spaces.
-- `documentary-edit` builds narratives from footage, photos, and archival material.
 
 Create visuals in code or edit recorded media. Map routes and situational storytelling are available as techniques.
 Projects support clip previews and full exports, synthesized narration, and bilingual subtitles with an adaptive halo.
@@ -73,6 +69,4 @@ See the [third-party notices](THIRD_PARTY_NOTICES.md) for dependencies, fonts, m
 [video-gallery]: https://haoaoqikf.github.io/material2video/
 [video-compound-after-20]: https://haoaoqikf.github.io/material2video/work-compound.html
 [video-global-market-cap-race-portrait]: https://haoaoqikf.github.io/material2video/work-market-cap.html
-[video-luck-on-stage]: https://haoaoqikf.github.io/material2video/work-luck-on-stage.html
 [video-solar-system-journey]: https://haoaoqikf.github.io/material2video/work-solar-system.html
-[video-american-science-milestones]: https://haoaoqikf.github.io/material2video/work-american-science.html

@@ -41,17 +41,9 @@ def _build() -> None:
 def _models(project: dict, *, check: bool, download: bool = False) -> None:
     """本地 TTS 作品按自身登记恢复/校验模型；其他后端不触碰模型目录。"""
     from .engine import tts
-    from .types.scene_film import explainer
 
-    if tts.default_backend(project) == 'kokoro' and 'backend' not in (project.get('tts') or {}):
-        # 预校验时后端还可能被 prepare --backend 覆盖；实际合成前会校验所选模型。
-        if check:
-            return
-        board = explainer.load(ROOT, project)
-        if not any(scene['narrationSegments'] for scene in board['scenes']):
-            return
     settings = tts.settings(project)
-    backend = settings.get('backend', tts.default_backend(project))
+    backend = settings.get('backend', tts.DEFAULT_BACKEND)
     script = {'kokoro': 'models/fetch.py',
               'qwen3-tts': 'models/qwen3-tts/fetch.py'}.get(backend)
     if script is None:

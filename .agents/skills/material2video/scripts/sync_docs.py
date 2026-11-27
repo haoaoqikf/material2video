@@ -35,7 +35,7 @@ PLAN = "docs/PROJECT_PLAN.md"
 
 
 def _grouped_lines(catalog, render_entry, *, with_description: bool = False) -> list[str]:
-    """五类按目录顺序列出，不再生成类别层。"""
+    """按目录顺序列出当前类型。"""
     return [render_entry(entry) for entry in catalog.entries()]
 
 

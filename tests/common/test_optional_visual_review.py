@@ -8,7 +8,7 @@ from m2v.core import delivery
 from m2v.type_system import registry
 
 
-@pytest.mark.parametrize("kind", ["text-motion", "data-evolution", "principle-metaphor", "spatial-3d", "documentary-edit"])
+@pytest.mark.parametrize("kind", ["text-motion", "data-evolution", "spatial-3d"])
 @pytest.mark.parametrize("review_state", [None, "pending", "fail", "stale"])
 def test_types_export_without_preview_or_manual_review(tmp_path, monkeypatch, kind, review_state):
     _register_builtins()

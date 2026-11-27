@@ -4,10 +4,10 @@
 （注册表、作品契约的类型白名单与材料映射、命令行的初始化模板）和三份文档里，
 且没有任何一致性检查；现在统一入口、作品初始化与文档都从这里派生。
 
-规范作品位置只有 ``videos/<type>/<slug>/``，目录只接受五个当前类型，
+规范作品位置只有 ``videos/<type>/<slug>/``，目录只接受三个当前类型，
 不解析类别或旧类型。
 
-本模块负责读取与校验类型目录；五类行为由统一适配器提供。
+本模块负责读取与校验类型目录；三类行为由统一适配器提供。
 
 目录是数据而不是行为，因此允许不方便放进数据里的东西（正则、类）留在这里，
 但**任何一个类型的名称、说明、材料文件名或文档文案都不允许在本模块之外再写
@@ -30,7 +30,7 @@ CATALOG_PATH = Path(__file__).with_name("catalog.json")
 
 #: 目录结构版本。字段含义变化时必须递增，并同步校验规则。
 SCHEMA_VERSION = 3
-FIVE_TYPES = frozenset({"text-motion", "data-evolution", "principle-metaphor", "spatial-3d", "documentary-edit"})
+SUPPORTED_TYPES = frozenset({"text-motion", "data-evolution", "spatial-3d"})
 
 #: 类型名与作品 id 同规则：小写字母、数字与连字符。
 _NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
@@ -72,7 +72,7 @@ class Entry:
         return {material.name: material.file for material in self.materials}
 
     def workspace_parts(self) -> tuple[str, ...]:
-        """作品在 ``videos/`` 下只按五类身份分层。"""
+        """作品在 ``videos/`` 下只按三类身份分层。"""
         return (self.name,)
 
     def initial_dimensions(self) -> dict[str, int]:
@@ -179,8 +179,8 @@ def _parse(data: Any) -> Catalog:
         raise M2VError("类型目录顶层只允许 schemaVersion 和 types")
     seen: set[str] = set()
     entries = tuple(_parse_entry(raw, index, seen) for index, raw in enumerate(raw_types))
-    if {entry.name for entry in entries} != FIVE_TYPES:
-        raise M2VError("类型目录必须恰好登记指定的五类视频")
+    if {entry.name for entry in entries} != SUPPORTED_TYPES:
+        raise M2VError("类型目录必须恰好登记指定的三类视频")
     return Catalog(entries)
 
 

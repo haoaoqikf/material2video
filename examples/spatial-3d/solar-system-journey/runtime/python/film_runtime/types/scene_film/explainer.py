@@ -44,7 +44,7 @@ def source_file(root: Path, project: dict) -> Path:
 
 def validate(data: dict, root: Path, project: dict | None = None) -> dict:
     if not isinstance(data, dict) or data.get("version") != VERSION or data.get("schemaVersion") != data.get("version"):
-        fail("version", "五类统一分镜只接受 v9；旧作品须重新编排，不自动迁移")
+        fail("version", "三类统一分镜只接受 v9；旧作品须重新编排，不自动迁移")
     validate_document(Storyboard, data, "storyboard")
     # 返回规范化副本，不修改作者材料；下游只读取已解析的实际帧率。
     data = {**data, "fps": storyboard_fps(project or {}, data)}

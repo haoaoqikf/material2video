@@ -40,18 +40,15 @@ def test_runtime_tts_mirrors_stay_identical() -> None:
         assert actual == expected, f"{name} 与主项目镜像不一致，请重新生成模板"
 
 
-def test_setup_checks_models_for_default_documentary_narration(monkeypatch) -> None:
+def test_setup_restores_models_only_for_explicit_local_backend(monkeypatch) -> None:
     from film_runtime import cli
-    from film_runtime.types.scene_film import explainer
 
     commands = []
-    segments = []
     monkeypatch.setattr(cli, "_run", commands.append)
-    monkeypatch.setattr(explainer, "load", lambda *args: {"scenes": [{"narrationSegments": segments}]})
-    project = {"type": "documentary-edit", "tts": {"voice": "zf_027"}}
+    project = {"type": "text-motion", "tts": {"voice": "zh-CN-XiaoxiaoNeural"}}
     cli._models(project, check=False, download=True)
     assert commands == []
-    segments.append({"id": "line", "text": "试制。"})
+    project["tts"] = {"backend": "kokoro", "voice": "zf_027"}
     cli._models(project, check=False, download=True)
     assert commands[0][1:] == ["models/fetch.py", "--download", "--voice", "zf_027"]
 

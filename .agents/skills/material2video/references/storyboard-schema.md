@@ -1,10 +1,10 @@
-# 五类统一分镜 v9
+# 三类统一分镜 v9
 
 > **独立工程**：作品从本地 `src/code-scene/` 导入接口；按需采用的参考组件连同递归依赖、资源和许可落到作品，不解析 `m2v/*`。
 
 本页提供制作技术契约；创作从[研究与试制](stage-research.md)进入，先解决影响方向判断的关键未知，再按[正式设计](stage-design.md)组织全片预演。
 
-五类只接受 `version: 9`、`schemaVersion: 9`。v8 及更早分镜必须重新编排，不自动迁移；
+三类只接受 `version: 9`、`schemaVersion: 9`。v8 及更早分镜必须重新编排，不自动迁移；
 历史测试分镜不属于制作入口。
 
 v9 的画幅、配色、构图与动效都由**作品代码**决定：分镜里没有模板，没有主题，也没有屏幕摘要
@@ -222,8 +222,7 @@ function useMediaAsset(id: string) {
 {"version":9,"schemaVersion":9,"fps":30,"width":1920,"height":1080,"title":"反馈帮助改进","input":{"kind":"article"},"targetSeconds":60,"scenes":[{"id":"opening","template":"code","content":{"title":"开场","entry":"scenes/opening.tsx"},"narrationSegments":[{"id":"line","text":"观察结果，根据反馈修正下一次的做法。"}]}]}
 ```
 
-完整示例：[从电报到大模型](../../../../examples/documentary-edit/american-science-milestones/storyboard.json)、
-[复利 40 年](../../../../examples/data-evolution/compound-after-20/storyboard.json)、
+完整示例：[复利 40 年](../../../../examples/data-evolution/compound-after-20/storyboard.json)、
 [太阳系之旅](../../../../examples/spatial-3d/solar-system-journey/storyboard.json)。当前规格见
 [five-video-types](../../../../openspec/specs/five-video-types/spec.md)。
 

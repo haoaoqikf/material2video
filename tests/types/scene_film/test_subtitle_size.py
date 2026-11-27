@@ -42,8 +42,8 @@ def test_valid_subtitle_font_size(tmp_path, font_size):
     assert load_project(tmp_path)[1]["output"]["subtitle"] == {"fontSize": font_size}
 
 
-@pytest.mark.parametrize("kind", ["text-motion", "data-evolution", "principle-metaphor", "spatial-3d", "documentary-edit"])
-def test_all_five_types_accept_subtitle_configuration(tmp_path, kind):
+@pytest.mark.parametrize("kind", ["text-motion", "data-evolution", "spatial-3d"])
+def test_all_three_types_accept_subtitle_configuration(tmp_path, kind):
     create_project(tmp_path, kind, {"storyboard": "storyboard.json"}, output={"subtitle": {"fontSize": 52}})
     assert load_project(tmp_path)[1]["output"]["subtitle"] == {"fontSize": 52}
 

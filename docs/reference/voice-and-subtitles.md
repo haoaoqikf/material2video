@@ -4,9 +4,9 @@
 
 ## 默认配音
 
-五类作品有自身旁白且需要选音时，制作助手默认采用「真人播客女」，配置与覆盖规则见[配音指南](../../.agents/skills/material2video/references/voice-and-rhythm.md#口播作品的固定默认音色)。
+三类作品有自身旁白且需要选音时，制作助手默认采用「真人播客女」，配置与覆盖规则见[配音指南](../../.agents/skills/material2video/references/voice-and-rhythm.md#口播作品的固定默认音色)。
 
-纪实口播默认使用本地 `kokoro`，其他类型默认使用联网的 `edge-tts`。纪实口播可按文案选择合适的 Kokoro 中文音色，例如 `zf_027` 这类本地音色，并按作品内 `models/registry.json` 恢复固定 revision 的模型。需要克隆参考音色时，作品可声明 `qwen3-tts`，用 `clone_<slug>` 指作品内参考音频与参考文本，按 `models/qwen3-tts/registry.json` 恢复 Qwen3-TTS 主模型与 stable-ts 对齐模型。Qwen3-TTS 使用 FFmpeg `atempo` 做保音高变速，再对实际音频强制对齐。三种后端都输出真实词边界，进入同一字幕断句与停顿整形链路。Kokoro 与 Qwen3-TTS 目前只接受纯中文旁白，数字与拉丁字母会在合成前失败；Qwen3-TTS 参考音色的来源与用户授权必须留证，不能从模型仓库恢复参考音频。
+默认使用联网的 `edge-tts`。显式选择本地 `kokoro` 时，可按文案选择合适的 Kokoro 中文音色，例如 `zf_027` 这类本地音色，并按作品内 `models/registry.json` 恢复固定 revision 的模型。需要克隆参考音色时，作品可声明 `qwen3-tts`，用 `clone_<slug>` 指作品内参考音频与参考文本，按 `models/qwen3-tts/registry.json` 恢复 Qwen3-TTS 主模型与 stable-ts 对齐模型。Qwen3-TTS 使用 FFmpeg `atempo` 做保音高变速，再对实际音频强制对齐。三种后端都输出真实词边界，进入同一字幕断句与停顿整形链路。Kokoro 与 Qwen3-TTS 目前只接受纯中文旁白，数字与拉丁字母会在合成前失败；Qwen3-TTS 参考音色的来源与用户授权必须留证，不能从模型仓库恢复参考音频。
 
 ## 模型恢复
 
@@ -14,4 +14,4 @@
 
 ## 字幕与柔光
 
-字幕支持中文主行 + 英文次行上下排列；带字幕的五类作品默认从实绘背景选择浅字或深字和自适应柔光，`frames.json` 保持字体、字号和画幅参数的统一入口。既有独立工程需采用更新后的本地运行时再生成。画面标注和片尾编排见[素材采用与署名](../../.agents/skills/material2video/references/material-sourcing.md#5-采用政策与署名)。
+字幕支持中文主行 + 英文次行上下排列；带字幕的三类作品默认从实绘背景选择浅字或深字和自适应柔光，`frames.json` 保持字体、字号和画幅参数的统一入口。既有独立工程需采用更新后的本地运行时再生成。画面标注和片尾编排见[素材采用与署名](../../.agents/skills/material2video/references/material-sourcing.md#5-采用政策与署名)。
