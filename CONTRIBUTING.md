@@ -8,12 +8,16 @@
 
 | 目的 | 从仓库根目录执行 |
 | --- | --- |
-| Python 专项测试 | `uv run pytest 路径::测试名`，或选择直接受影响的文件；默认排除 `media`、`slow`，完整 `uv run pytest` 只用于明确要求或正式发布验证 |
+| Python 专项测试 | `uv run pytest 路径::测试名`，或选择直接受影响的文件；默认排除 `media`、`slow`、`restored` 三层，`uv run pytest --full` 才跑全部 |
 | Python 静态检查 | 已在环境安装 Ruff 时运行 `uv run ruff check src tests`；它不在当前开发依赖中，可用 `uv run --with ruff ruff check src tests` 临时运行，不改锁文件 |
 | 安装共享前端依赖 | `pnpm -C web install --frozen-lockfile` |
 | 前端验证 | `pnpm -C web run typecheck`、`pnpm -C web run test`；构建时运行 `pnpm -C web run build` |
 
 涉及渲染时，在受影响作品内运行相应的 `pnpm run preview`、`pnpm run render` 或 `pnpm run qa`，按变更范围记录证据。提交前运行 `git diff --cached --check` 并查看暂存文件；不提交生成媒体、依赖、缓存、字体二进制或凭据。
+
+`restored` 层的用例需要先恢复不入库的二进制：字体用 `uv run python fonts/fetch.py`（缺下载地址的字体按 `fonts/registry.json` 自备摘要一致的文件），示例用各自 README 的 `pnpm install` 与素材恢复。恢复后再用 `uv run pytest --full` 跑全量。
+
+CI 按目录切十个作业并联，单片用 `pytest -n 1 --dist loadfile --timeout=60`，单次全量约一分多钟。需要真实 ffmpeg 编解码、真实 Node 会话或等待超时的用例不要放回默认层，否则会把 runner 的内存和时长顶穿。
 
 ## 提交与 OpenSpec
 
