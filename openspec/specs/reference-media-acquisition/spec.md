@@ -104,9 +104,9 @@
 
 provenance SHALL 记录参考作品 ID、类型、作者、文案、来源链接、最终链接、抓取时间、参考视频相对路径与 SHA-256/字节数，以及提取音频的路径、SHA-256、字节数、采样数、时长、采样率、声道、位深、60 fps 总帧数与取整方式。provenance SHALL 记录提取时间与 ffmpeg 版本，并 SHALL 记录用户授权原文、「未取得书面许可、用户指定复用不构成许可」的许可状态、第三方音乐风险与署名。
 
-命令 SHALL 输出按作品实际fps向上取整的总帧数（`(samples × fps + sampleRate - 1) // sampleRate`）与时间轴fps，以及可直接粘贴的 `soundtrack.music` 片段（`gainDb: 0`、`loop: false`、`fadeInMs: 0`、`fadeOutMs: 0`）。尚无分镜时使用项目声明帧率或五类作品默认30 fps。原始留证中的60 fps分析帧数 MUST 保留。音频时长超过600秒时 SHALL 拒绝。
+命令 SHALL 输出按作品实际fps向上取整的总帧数（`(samples × fps + sampleRate - 1) // sampleRate`）与时间轴fps，以及可直接粘贴的 `soundtrack.music` 片段（`gainDb: 0`、`loop: false`、`fadeInMs: 0`、`fadeOutMs: 0`）。尚无分镜时使用项目声明帧率或三类作品默认30 fps。原始留证中的60 fps分析帧数 MUST 保留。音频时长超过600秒时 SHALL 拒绝。
 
-命令 SHALL NOT 修改参考目录。目标已存在时 SHALL 默认拒绝；只有参考视频摘要、音频摘要与字节数均一致时才可复用，否则 SHALL 要求 `--force`，并在 `--force` 时同时替换音频与 provenance。名称含路径分隔符、绝对路径、`..`、Windows 保留名或已带 `.wav` / `.provenance.json` 后缀时 SHALL 拒绝。参考目录校验失败、作品类型不在五类之中、参考作品不是视频、视频没有音频流时 SHALL 失败且不留下临时或部分文件。
+命令 SHALL NOT 修改参考目录。目标已存在时 SHALL 默认拒绝；只有参考视频摘要、音频摘要与字节数均一致时才可复用，否则 SHALL 要求 `--force`，并在 `--force` 时同时替换音频与 provenance。名称含路径分隔符、绝对路径、`..`、Windows 保留名或已带 `.wav` / `.provenance.json` 后缀时 SHALL 拒绝。参考目录校验失败、作品类型不在三类之中、参考作品不是视频、视频没有音频流时 SHALL 失败且不留下临时或部分文件。
 
 #### Scenario: 参考音轨时间轴帧率
 - **WHEN** 为30或60 fps的通用作品提取参考音轨

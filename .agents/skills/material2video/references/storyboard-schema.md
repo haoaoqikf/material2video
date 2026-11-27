@@ -224,7 +224,7 @@ function useMediaAsset(id: string) {
 
 完整示例：[复利 40 年](../../../../examples/data-evolution/compound-after-20/storyboard.json)、
 [太阳系之旅](../../../../examples/spatial-3d/solar-system-journey/storyboard.json)。当前规格见
-[five-video-types](../../../../openspec/specs/five-video-types/spec.md)。
+[three-video-types](../../../../openspec/specs/three-video-types/spec.md)。
 
 ## 结构化来源（v9）
 

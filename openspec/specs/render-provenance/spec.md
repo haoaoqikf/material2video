@@ -24,7 +24,7 @@ SHALL NOT 因为未引用资源的变化就判为落后。
 组件源码、作品样式与令牌、字体资产、包清单与锁文件。这样「改了组件源码但没重渲」
 会被判为落后——它正是最容易发生、又最不容易被发现的一类落后。
 
-五类作品导出的溯源 SHALL 记录 `look`、`shots`、`postFx`、`audio` 与交付文件摘要，
+三类作品导出的溯源 SHALL 记录 `look`、`shots`、`postFx`、`audio` 与交付文件摘要，
 MUST NOT 记录 `productionProfile`。look、shots、后期与声音参数 SHALL 与准备指纹使用
 同一口径；任一参数变化 MUST 让成片被判为落后。未声明 shots/look 时溯源省略相应键，
 不视为损坏。
@@ -46,7 +46,7 @@ MUST NOT 记录 `productionProfile`。look、shots、后期与声音参数 SHALL
 - **THEN** 溯源记录作品相对路径，判定能给出「对得上」而不是「无法判断」
 
 #### Scenario: 统一制作溯源
-- **WHEN** 导出 五类作品 成片
+- **WHEN** 导出 三类作品 成片
 - **THEN** 溯源记录 look、shots、postFx、audio 与交付摘要，不记录 productionProfile；只改 look 或后期后，旧成片被判为落后
 
 #### Scenario: 可选键兼容

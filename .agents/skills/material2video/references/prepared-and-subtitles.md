@@ -6,7 +6,7 @@
 > 文章叙事只记录正文计数，**不再限制 130～170 字，也不再限制 35～45 秒**；
 > 有旁白时长结合实际口播与声明的留白派生，无旁白代码幕按 `durationFrames` 或 `targetSeconds` 分配帧窗组织；统一 v9 全片上限为 600 秒（总帧数不超过 `600 × fps`）。分镜与时间轴契约以
 > [三类统一分镜 v9](storyboard-schema.md)、[文章媒体与音效](article-media-and-sound.md) 与
-> [OpenSpec five-video-types](../../../../openspec/specs/five-video-types/spec.md) 为准。
+> [OpenSpec three-video-types](../../../../openspec/specs/three-video-types/spec.md) 为准。
 > v4 的媒体清单、`stages` 时间轴与语义节拍已随旧子系统删除，本文不再描述。
 
 ## 准备记录（`outputs/prepared.json`）

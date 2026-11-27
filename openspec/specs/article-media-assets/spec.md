@@ -47,7 +47,7 @@
 
 ### Requirement: 文章统一素材入口
 
-素材作品 MUST 使用 v9 五类代码场景；系统 MUST 拒绝 stock-montage 和旧分镜，不提供迁移工具。Pixabay MUST 作为 `search` 唯一启用且默认的图库 API 来源；Pexels API 检索 MUST 固定停用，配置 Pexels 密钥 MUST NOT 自动重新启用。没有候选不算制作失败；Pexels 等来源的公开媒体直链 MUST 可通过 `import` 无凭据下载并留证。
+素材作品 MUST 使用 v9 三类代码场景；系统 MUST 拒绝 stock-montage 和旧分镜，不提供迁移工具。Pixabay MUST 作为 `search` 唯一启用且默认的图库 API 来源；Pexels API 检索 MUST 固定停用，配置 Pexels 密钥 MUST NOT 自动重新启用。没有候选不算制作失败；Pexels 等来源的公开媒体直链 MUST 可通过 `import` 无凭据下载并留证。
 
 #### Scenario: 旧类型请求
 - **WHEN** 请求 stock-montage 或 v7 素材作品
@@ -90,7 +90,7 @@
 - **THEN** 不因贴图配额拒绝，按实际表现需要决定是否补充
 
 #### Scenario: 标准档不增加门禁
-- **WHEN** 五类作品未显式运行素材审计命令
+- **WHEN** 三类作品未显式运行素材审计命令
 - **THEN** prepare 仍检查全部登记媒体的采用状态和技术一致性；人工审美记录不增加CLI门禁
 
 #### Scenario: 台账工具不替代审计

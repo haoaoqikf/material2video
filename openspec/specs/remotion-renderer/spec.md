@@ -15,7 +15,7 @@ Remotion 的官方规则与本项目既有渲染契约是同一条要求（所�
 
 以下渲染实现归属于作品自己的默认工程模板，MUST 在没有主项目的环境运行。主项目 MUST 只委托作品入口，不注入其web工程、字体、源码或依赖；自定义工程可自行选择实现，接入制作工具时遵守同等输出与证据约束。
 
-默认作品工程 SHALL 以本地 React composition 为唯一合成执行者，由 Remotion 逐帧渲染编码。五类作品 SHALL 使用 v9 全画布本地代码场景按需录制的无声片段；作品工程 MUST 自行拥有本地Remotion根、composition、契约页和时间轴；单个场景入口 MUST NOT 绕过该工程执行协议再注册另一套成片根。
+默认作品工程 SHALL 以本地 React composition 为唯一合成执行者，由 Remotion 逐帧渲染编码。三类作品 SHALL 使用 v9 全画布本地代码场景按需录制的无声片段；作品工程 MUST 自行拥有本地Remotion根、composition、契约页和时间轴；单个场景入口 MUST NOT 绕过该工程执行协议再注册另一套成片根。
 
 本地 composition 可达画面 SHALL 由帧号或共享场景参数驱动，不依赖挂钟、系统随机数、CSS 动画或组件自带计时器。渲染前 SHALL 对本地合成源码和 CSS 静态检查，命中禁用写法时报出文件位置并拒绝。作品 scenes 代码 SHALL 仅运行于独立录制页，不进入 composition；其自由动画不承诺逐像素复现，正式导出只回放已验收片段。
 
@@ -248,7 +248,7 @@ SHALL NOT 因为本次口径调整而放宽。
 
 系统 SHALL 提供一个可被浏览器自动化驱动的契约页，把本地 composition 挂载为可寻址的帧序列，并在 `window.__M2V__` 上暴露 `version`、`fps`、`width`、`height`、`durationInFrames`、`ready()` 与 `seekToFrame(frame)`。契约页 SHALL 只服务当前仍受支持的 composition 契约。
 
-`version` SHALL 与所选 composition 的契约版本一致；五类共用的 SceneFilm composition 契约 SHALL 为 `6`，与分镜版本相互独立。`ready()` SHALL 在字体、本地资源就绪且第 0 帧已绘制后 resolve。`seekToFrame(frame)` SHALL 把画面切换到第 frame 帧、暂停播放，并在画面更新完成后 resolve；`frame` 从 `0` 开始，最大值为 `durationInFrames - 1`。
+`version` SHALL 与所选 composition 的契约版本一致；三类共用的 SceneFilm composition 契约 SHALL 为 `6`，与分镜版本相互独立。`ready()` SHALL 在字体、本地资源就绪且第 0 帧已绘制后 resolve。`seekToFrame(frame)` SHALL 把画面切换到第 frame 帧、暂停播放，并在画面更新完成后 resolve；`frame` 从 `0` 开始，最大值为 `durationInFrames - 1`。
 
 默认模板的本地契约页 SHALL 复用Remotion Player；作品拥有该本地实现，自定义工程只需兑现已声明协议语义，不要求加载主项目契约页。`seekToFrame` 返回后，所有场景组件观察到的当前帧 SHALL 等于 `frame`。
 
@@ -290,11 +290,11 @@ SHALL NOT 因为本次口径调整而放宽。
 
 渲染入口 SHALL 提供可选正整数 `--jobs`，默认 2。`--jobs: 1` SHALL 使用单会话渲染路径。`--jobs > 1` 时，系统 SHALL 先读取并交叉校验 composition 元数据，再按帧区间启动多个独立渲染进程；每段 SHALL 独立解码核对帧数、尺寸与帧率，拼接后 SHALL 复核总帧数，最后统一混入音轨。
 
-`--jobs` SHALL 与 Remotion 页签级 `--concurrency` 区分；分段内部并发 SHALL 固定为 1。`--jobs` SHALL NOT 进入候选交付绑定：改变 jobs 仍可复用同一内容候选。任一段失败 SHALL 清理进程并明确失败，MUST NOT 留下可被误认为成功的成片。该能力 SHALL 对五类作品开放。
+`--jobs` SHALL 与 Remotion 页签级 `--concurrency` 区分；分段内部并发 SHALL 固定为 1。`--jobs` SHALL NOT 进入候选交付绑定：改变 jobs 仍可复用同一内容候选。任一段失败 SHALL 清理进程并明确失败，MUST NOT 留下可被误认为成功的成片。该能力 SHALL 对三类作品开放。
 
 #### Scenario: 分段渲染
 
-- **WHEN** 五类作品以 `--jobs 4` 渲染全片
+- **WHEN** 三类作品以 `--jobs 4` 渲染全片
 - **THEN** 四个帧区间独立渲染、逐段验收后无损拼接，成片帧数、尺寸、帧率与单进程一致
 
 #### Scenario: 默认双进程

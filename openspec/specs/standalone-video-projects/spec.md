@@ -37,7 +37,7 @@
 
 ### Requirement: 随附示例全部独立
 
-系统 MUST 在 `examples/<type>/<slug>/` 保留 data-evolution/compound-after-20、data-evolution/global-market-cap-race-portrait、principle-metaphor/luck-on-stage、spatial-3d/solar-system-journey、documentary-edit/american-science-milestones 五部示例。每部 MUST 拥有独立工程与恢复说明，保持既有主题、场景身份、数学／事实口径、音轨要求及视听目标；复利示例 MUST 保留原克隆音色，并从使用者本地提供的同一参考 WAV 与音色档案恢复；版本控制 MUST NOT 包含参考录音、参考文本或本地来源路径；MUST NOT 以空场景、静态占位、缩减内容或新增简化示例代替。每例 MUST 证明脱库构建与真实预演；全片导出链路 MUST 有各例完整技术验证，并对受影响代表画面与动态进行复核。图文动效 MUST 继续作为可初始化和制作的视频类型，但不要求附带示例。
+系统 MUST 在 `examples/<type>/<slug>/` 保留 data-evolution/compound-after-20、data-evolution/global-market-cap-race-portrait、spatial-3d/solar-system-journey 三部示例。每部 MUST 拥有独立工程与恢复说明，保持既有主题、场景身份、数学／事实口径、音轨要求及视听目标；复利示例 MUST 保留原克隆音色，并从使用者本地提供的同一参考 WAV 与音色档案恢复；版本控制 MUST NOT 包含参考录音、参考文本或本地来源路径；MUST NOT 以空场景、静态占位、缩减内容或新增简化示例代替。每例 MUST 证明脱库构建与真实预演；全片导出链路 MUST 有各例完整技术验证，并对受影响代表画面与动态进行复核。图文动效 MUST 继续作为可初始化和制作的视频类型，但不要求附带示例。
 
 #### Scenario: 独立示例矩阵
 
@@ -47,7 +47,7 @@
 #### Scenario: 示例集合与类型独立
 
 - **WHEN** 枚举仓库分发示例并初始化图文动效作品
-- **THEN** 示例目录和测试登记仅包含上述五部作品，图文动效初始化仍生成完整独立工程；文档不提供已删除作品的使用入口。
+- **THEN** 示例目录和测试登记仅包含上述三部作品，图文动效初始化仍生成完整独立工程；文档不提供已删除作品的使用入口。
 
 #### Scenario: 本地恢复复利示例旁白
 
