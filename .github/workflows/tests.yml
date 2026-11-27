@@ -13,12 +13,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - shard: common-a
-            paths: "tests/common"
-            slice: "1"
-          - shard: common-b
+          - shard: common-1
             paths: "tests/common"
             slice: "0"
+          - shard: common-2
+            paths: "tests/common"
+            slice: "1"
+          - shard: common-3
+            paths: "tests/common"
+            slice: "2"
+          - shard: common-4
+            paths: "tests/common"
+            slice: "3"
           - shard: types
             paths: "tests/types"
             slice: ""
@@ -42,12 +48,12 @@ jobs:
           set -uo pipefail
           targets="${{ matrix.paths }}"
           if [ -n "${{ matrix.slice }}" ]; then
-            targets=$(ls tests/common/test_*.py | awk -v keep=${{ matrix.slice }} 'NR % 2 == keep' | tr '\n' ' ')
+            targets=$(ls tests/common/test_*.py | awk -v keep=${{ matrix.slice }} 'NR % 4 == keep' | tr '\n' ' ')
             echo "本分片文件：$targets"
           fi
           log="pytest-${{ matrix.shard }}.log"
           rc=0
-          timeout --kill-after=30 1200 python -m pytest -n 2 --dist loadfile \
+          timeout --kill-after=30 900 python -m pytest -n 1 --dist loadfile \
             --timeout=60 --timeout-method=signal -v $targets > "$log" 2>&1 || rc=$?
           echo "pytest 退出码：$rc"
           tail -n 120 "$log"
