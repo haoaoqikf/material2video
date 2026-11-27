@@ -9,6 +9,10 @@ from film_runtime.engine import qa_inspection as inspect
 from film_runtime.engine import qa
 from helpers.prepared import prepared_stub
 
+# 这一组用真实 ffmpeg 编解码做替代验收，和 media 层一样默认排除。
+pytestmark = pytest.mark.media
+
+
 
 def clip(path, *, silent=False, audio=True, seconds=2):
     args = [get_ffmpeg_exe(), '-v', 'error', '-y', '-f', 'lavfi', '-i',

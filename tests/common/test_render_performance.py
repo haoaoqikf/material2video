@@ -62,7 +62,8 @@ def test_report_covers_every_stage_once_and_total_is_not_double_counted():
     assert "encode" not in report["stages"], "渲染与编码重叠，不得拆成两段相加"
     assert set(report["stages"]) == set(perf.STAGES)
     executed = sum(value for value in report["stages"].values() if value is not None)
-    assert report["executedSeconds"] == pytest.approx(executed, abs=1e-6)
+    # 报告里的分段耗时与总计都按 3 位小数落盘，比较也要按同一精度。
+    assert report["executedSeconds"] == pytest.approx(executed, abs=1e-3)
     # 每一段都发生在整段之内：总耗时不可能小于各段之和
     assert report["totalSeconds"] >= executed - 0.01
     assert report["skipped"] == ["mux", "probe"]

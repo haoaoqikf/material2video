@@ -25,6 +25,18 @@ jobs:
           - shard: common-4
             paths: "tests/common"
             slice: "3"
+          - shard: common-5
+            paths: "tests/common"
+            slice: "4"
+          - shard: common-6
+            paths: "tests/common"
+            slice: "5"
+          - shard: common-7
+            paths: "tests/common"
+            slice: "6"
+          - shard: common-8
+            paths: "tests/common"
+            slice: "7"
           - shard: types
             paths: "tests/types"
             slice: ""
@@ -48,7 +60,7 @@ jobs:
           set -uo pipefail
           targets="${{ matrix.paths }}"
           if [ -n "${{ matrix.slice }}" ]; then
-            targets=$(ls tests/common/test_*.py | awk -v keep=${{ matrix.slice }} 'NR % 4 == keep' | tr '\n' ' ')
+            targets=$(ls tests/common/test_*.py | awk -v keep=${{ matrix.slice }} 'NR % 8 == keep' | tr '\n' ' ')
             echo "本分片文件：$targets"
           fi
           log="pytest-${{ matrix.shard }}.log"
