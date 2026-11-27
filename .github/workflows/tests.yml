@@ -66,7 +66,7 @@ jobs:
           log="pytest-${{ matrix.shard }}.log"
           rc=0
           timeout --kill-after=30 900 python -m pytest -n 1 --dist loadfile \
-            --timeout=60 --timeout-method=signal -v $targets > "$log" 2>&1 || rc=$?
+            --timeout=60 --timeout-method=signal -vv $targets > "$log" 2>&1 || rc=$?
           echo "pytest 退出码：$rc"
           tail -n 120 "$log"
           exit "$rc"

@@ -8,6 +8,10 @@ from film_runtime.core.errors import VideoError
 from film_runtime.engine import qa_inspection as inspect
 from film_runtime.engine import rhythm_measure
 
+# 这项走真实 ffmpeg 抽帧，属 media 层，默认排除。
+pytestmark = pytest.mark.media
+
+
 
 def scene(scene_id, start, end, *, segments=(), lead_in=0, reading=0, tail=0, transition=0):
     return {
