@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="《复利 40 年》用年度利息柱和前后两座塔比较同一笔本金的两个二十年。">
+  <title>复利 40 年 · Material2Video</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="masthead shell">
+    <a class="brand" href="index.html">Material2Video</a>
+    <a href="index.html#works">作品集</a>
+  </header>
+  <main class="work shell">
+    <header class="work-intro">
+      <p class="meta">数据演化 <span>38.7 秒</span></p>
+      <h1>复利 40 年</h1>
+      <p>同一笔本金按同一利率复利四十年，后半程会多赚多少？先看第二年的额外一百元从哪来，再看年度利息柱从同一条零线长出，最后看前后二十年的柱归成两座塔。</p>
+    </header>
+    <figure class="work-media">
+      <video src="assets/clip-compound.mp4" poster="assets/poster-compound.jpg" width="720" height="406" autoplay muted loop playsinline preload="metadata" controls aria-label="四十年年度利息柱依次增长的静音片段"></video>
+      <figcaption>四十年的年度利息柱 · 成片 00:21–00:30 · 静音</figcaption>
+    </figure>
+    <div class="work-details">
+      <section>
+        <h2>它由这些组成</h2>
+        <ul>
+          <li><a href="https://github.com/haoaoqikf/material2video/blob/main/examples/data-evolution/compound-after-20/storyboard.json">分镜</a> <span>四幕编排与旁白文本</span></li>
+          <li><a href="https://github.com/haoaoqikf/material2video/blob/main/examples/data-evolution/compound-after-20/scenes/compound-annual-growth.tsx">场景源码</a> <span>年度利息柱</span></li>
+          <li><a href="https://github.com/haoaoqikf/material2video/blob/main/examples/data-evolution/compound-after-20/scenes/compound-model.ts">材料</a> <span>本金、年利率与逐年计算</span></li>
+        </ul>
+      </section>
+      <section>
+        <h2>想改这里</h2>
+        <p>把 <a href="https://github.com/haoaoqikf/material2video/blob/main/examples/data-evolution/compound-after-20/scenes/compound-model.ts#L5"><code>compound-model.ts</code> 的 <code>rate</code></a> 从 <code>0.10</code> 改为 <code>0.08</code>，观察各年的柱高与两座塔的差距。全片原旁白使用本地克隆音色，改数值时也要更新旁白中的数字。</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

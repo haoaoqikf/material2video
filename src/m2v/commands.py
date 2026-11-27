@@ -20,10 +20,13 @@ from m2v.type_system import catalog, registry
 
 def dispatch(args) -> int:
     """按已解析的命令执行；错误交给 `m2v.cli.main` 统一映射为退出码。"""
+    if args.command == "storage":
+        from m2v.production.video_storage import dispatch as storage_dispatch
+        return storage_dispatch(args)
     if args.command == "sample":
         from m2v.production.sample_cli import dispatch as sample_dispatch
         return sample_dispatch(args)
-    if args.command in {"review", "issues", "baseline"}:
+    if args.command in {"review", "issues"}:
         from m2v.production.cli import dispatch as production_dispatch
         return production_dispatch(args)
     if args.command == "types":
@@ -172,6 +175,9 @@ def _project_command(args) -> int:
         if jobs > 1 and not video_type.supports_render_jobs:
             raise M2VError(f"当前类型 {manifest['type']} 不支持 --jobs > 1")
         render_options = {"jobs": jobs} if jobs > 1 and video_type.supports_render_jobs else {}
+        from m2v.production.video_storage import reclaim_recordings
+
+        reclaim_recordings(root)
         if args.command == "render":
             _require_render_input(video_type, root, manifest)
             _production_render_event(root, manifest, 'render-request')
@@ -338,14 +344,10 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
 
 
 def _status_in_query(root: Path, manifest: dict, *, full_history: bool) -> dict:
-    from m2v.production import baselines, film_review, ledger
+    from m2v.production import film_review, ledger
 
     result = {"id": manifest["id"], "type": manifest["type"]}
     result['production'] = ledger.status(root, manifest, full_history=full_history)
-    try:
-        result['production']['baselines'] = baselines.summary(root)
-    except M2VError as exc:
-        result['production'].setdefault('diagnostics', []).append(str(exc))
     try:
         prepared = film_review.prepared(root, manifest)
         result["prepare"] = {"status": "current", "fingerprint": prepared["preparedFingerprint"]}

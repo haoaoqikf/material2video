@@ -12,7 +12,6 @@ import math
 import shutil
 import subprocess
 import sys
-import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -33,6 +32,7 @@ NAVIGATION_TIMEOUT_MS = 90000
 PURE_CONTRACT = "pure-seek-png-444-v2"
 SEQUENTIAL_CONTRACT = "fixed-clock-png-444-v5"
 
+from .workspace import recording_workspace
 
 logger = logging.getLogger(__name__)
 
@@ -90,8 +90,7 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
     first, last = capture_range or (0, config["durationInFrames"])
     if not 0 <= first < last <= config["durationInFrames"]:
         raise VideoError("场景采集范围越界")
-    with tempfile.TemporaryDirectory(prefix="code-", dir=cache) as temporary:
-        work = Path(temporary)
+    with recording_workspace(cache) as work:
         source_inputs = build_scene(root, scene, work)
         inputs.update(source_inputs)
         inputs["codeMedia"] = media_digest
@@ -163,6 +162,7 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
                 _clip_receipt(output, first, last, extra=final_extra)
         relative = output.relative_to(root).as_posix()
         inputs["file:" + relative] = digest(output)
+        output.touch()
         return relative
 
 
@@ -593,6 +593,8 @@ def _encode(work: Path, output: Path, frames: int, width: int, height: int, *, s
                   "-crf", "18", str(temporary)])
     _verify_clip(temporary, frames)
     security.deliver(temporary, output)
+    for frame_path in captured:
+        frame_path.unlink()
 
 
 def _verify_clip(video: Path, frames: int) -> None:

@@ -13,6 +13,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
+from film_runtime.types.scene_film.code_scenes.cache import using_scene_cache
 from film_runtime.core.errors import VideoError
 from film_runtime.core.project import _write_json
 from film_runtime.engine import remotion
@@ -91,15 +92,16 @@ def background_stills(root: Path, storyboard: Path, prepared: dict, frames: list
     overlaps = [frame for frame in frames if frame not in result]
     if overlaps:
         with LocalServer(root, cors=True) as server:
-            bundle = remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / "bundle",
-                                     storyboard_path=storyboard,
-                                     content_root=root.parent, workspace_root=root.parent, cache=True)
-            for frame in overlaps:
-                props = still_props(root, prepared, captured, frame, server.base_url + "/")
-                props["subtitleCues"] = []
-                target = work / f"background-{frame:06d}.png"
-                _compose_still(work, bundle.path, props, target, frame, 1)
-                result[frame] = target
+            with remotion.bundle(
+                web_dir=remotion.web_dir(), out_dir=work / "bundle", storyboard_path=storyboard,
+                content_root=root.parent, workspace_root=root.parent, cache=True,
+            ) as bundle:
+                for frame in overlaps:
+                    props = still_props(root, prepared, captured, frame, server.base_url + "/")
+                    props["subtitleCues"] = []
+                    target = work / f"background-{frame:06d}.png"
+                    _compose_still(work, bundle.path, props, target, frame, 1)
+                    result[frame] = target
     return result
 
 
@@ -132,14 +134,15 @@ def render_stills(root: Path, project: dict, frames: list[int], destination: Pat
         native = work / "native"
         native.mkdir()
         captured = native_stills(root, prepared, frames, native, scale=scale)
-        bundle = remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / "bundle",
-                                 storyboard_path=entry, content_root=root.parent,
-                                 workspace_root=root.parent, cache=True)
-        for frame in frames:
-            target = destination / f"still-{frame:06d}.png"
-            props = still_props(root, prepared, captured, frame, server.base_url + "/")
-            _compose_still(work, bundle.path, props, target, frame, scale)
-            produced.append(target)
+        with remotion.bundle(
+            web_dir=remotion.web_dir(), out_dir=work / "bundle", storyboard_path=entry,
+            content_root=root.parent, workspace_root=root.parent, cache=True,
+        ) as bundle:
+            for frame in frames:
+                target = destination / f"still-{frame:06d}.png"
+                props = still_props(root, prepared, captured, frame, server.base_url + "/")
+                _compose_still(work, bundle.path, props, target, frame, scale)
+                produced.append(target)
     manifest = {"schemaVersion": 1, "preparedFingerprint": prepared["preparedFingerprint"],
                 "frames": frames, "stillScale": scale,
                 "stills": {str(frame): path.relative_to(root).as_posix()
@@ -149,6 +152,9 @@ def render_stills(root: Path, project: dict, frames: list[int], destination: Pat
     return manifest
 
 
+
+
+@using_scene_cache
 def materialize_all(root: Path, project: dict) -> dict:
     """物化全片片段并返回带本地媒体路径的准备 props，供制作工具读取。"""
     from film_runtime.types.scene_film import code_scenes, explainer_render

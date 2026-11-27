@@ -240,12 +240,12 @@ def test_actual_bilingual_composition_in_both_independent_review_packages(work, 
             {**scene, "stillPath": f"{server.base_url}/{scene['id']}.png"} for scene in props["compiledScenes"]
         ]}
         write(config, render_props)
-        bundle = remotion.bundle(web_dir=template, out_dir=root / "bundle", storyboard_path=config,
-                                 content_root=root.parent, workspace_root=root.parent, cache=True)
-        confirm = render_pipeline.metadata_confirm(
-            (fps, width, height, 901), source, crf=18, preset="medium", frames=6, start_frame=467)
-        remotion.render_session(web_dir=template, bundle_dir=bundle.path, props=config,
-                                composition_id="SceneFilm", on_metadata=confirm, timeout_s=90)
+        with remotion.bundle(web_dir=template, out_dir=root / "bundle", storyboard_path=config,
+                                 content_root=root.parent, workspace_root=root.parent, cache=True) as bundle:
+            confirm = render_pipeline.metadata_confirm(
+                (fps, width, height, 901), source, crf=18, preset="medium", frames=6, start_frame=467)
+            remotion.render_session(web_dir=template, bundle_dir=bundle.path, props=config,
+                                    composition_id="SceneFilm", on_metadata=confirm, timeout_s=90)
 
     _preview(root, project, prepared, source, 467, 6)
     monkeypatch.setattr(reviews, "ffmpeg", ffmpeg)

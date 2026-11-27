@@ -22,8 +22,9 @@ import json
 import logging
 import os
 import shutil
-import sys
+import re
 import time
+import uuid
 from collections.abc import Iterator
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,6 +33,7 @@ import film_runtime.engine.perf as perf
 from film_runtime.core.errors import VideoError
 from film_runtime.core.fingerprints import file_digest, fingerprint
 from film_runtime.core import security
+from film_runtime.core.process_liveness import process_is_alive as _process_is_alive
 
 logger = logging.getLogger(__name__)
 
@@ -64,12 +66,16 @@ KEY_LOCK_TIMEOUT_S = 1800.0
 #: 共享前端工作区构建锁的等待时限。
 GENERATION_LOCK_TIMEOUT_S = 3600.0
 
-#: 锁文件超过这个时长认为持有者已经死亡（崩溃残留），可以清理。
+#: 未记录进程归属的锁，超过此时长才回收。
 LOCK_STALE_S = 6 * 3600.0
 
 #: 残留临时目录的清理阈值。
 TMP_STALE_S = 24 * 3600.0
 
+MAX_ENTRIES = 8
+
+_CACHE_KEY = re.compile(r"[0-9a-f]{64}")
+_LEASE = re.compile(r"\.use-([0-9a-f]{64})-([1-9][0-9]*)-[0-9a-f]{32}")
 _LOCK_POLL_S = 0.2
 
 
@@ -179,7 +185,7 @@ def verify(entry: Path, key: str) -> tuple[bool, str]:
     「缓存被错误地写坏了」，而这两种情况的修法完全不同。
     """
     manifest = entry / MANIFEST_NAME
-    if not manifest.is_file():
+    if security.local_directory_mtime_ns(entry) is None or not manifest.is_file():
         return False, "没有完成标记"
     try:
         payload = json.loads(manifest.read_text(encoding="utf-8"))
@@ -234,21 +240,91 @@ def publish(tmp: Path, target: Path, *, key: str) -> None:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-def _cleanup(parent: Path, *, prefix: str, older_than_s: float) -> None:
-    """清理上次崩溃留下的临时目录。删不掉不影响本次构建。"""
-    if not parent.is_dir():
-        return
-    cutoff = time.time() - older_than_s
-    for path in parent.glob(f"{prefix}*"):
-        try:
-            if path.stat().st_mtime < cutoff:
-                shutil.rmtree(path, ignore_errors=True)
-        except OSError:  # pragma: no cover - 并发清理时的正常竞态
+def local_cache(web_dir: Path) -> bool:
+    root = cache_root(web_dir)
+    return all(security.local_directory_mtime_ns(path) is not None for path in (root.parent, root))
+
+
+def active_keys(web_dir: Path) -> set[str]:
+    """在构建锁内读取占用标记。进程异常退出后，下一次缓存访问回收标记。"""
+    result = set()
+    for path in cache_root(web_dir).glob(".use-*"):
+        match = _LEASE.fullmatch(path.name)
+        if not match:
             continue
+        key, pid = match.groups()
+        if _process_is_alive(int(pid)):
+            result.add(key)
+        else:
+            release(path)
+    return result
 
 
-def cleanup_stale(web_dir: str | Path) -> None:
-    _cleanup(cache_root(web_dir), prefix=".tmp-", older_than_s=TMP_STALE_S)
+def retain(web_dir: Path, key: str) -> Path:
+    """在构建锁内登记一个读者，并更新最近使用时间。"""
+    directory = entry_dir(web_dir, key)
+    marker = directory.parent / f".use-{key}-{os.getpid()}-{uuid.uuid4().hex}"
+    marker.touch(exist_ok=False)
+    try:
+        os.utime(directory, None)
+    except OSError as exc:
+        logger.warning("无法更新构建缓存使用时间 %s：%s", directory, exc)
+    return marker
+
+
+def release(marker: Path) -> None:
+    try:
+        marker.unlink(missing_ok=True)
+    except OSError as exc:
+        logger.warning("无法清理构建缓存使用标记 %s：%s", marker, exc)
+
+
+def prune(web_dir: Path, *, key: str, active: set[str]) -> bool:
+    """在构建锁内为给定键留出位置，优先清理最久未使用的空闲条目。"""
+    root = cache_root(web_dir)
+    try:
+        if not local_cache(web_dir):
+            return False
+        entries = {
+            path.name: mtime
+            for path in root.iterdir()
+            if _CACHE_KEY.fullmatch(path.name)
+            and (mtime := security.local_directory_mtime_ns(path)) is not None
+        }
+    except OSError as exc:
+        logger.warning("无法读取构建缓存 %s：%s", root, exc)
+        return False
+    target = root / key
+    if key not in entries and os.path.lexists(target):
+        return False
+    excess = len(entries) + (key not in entries) - MAX_ENTRIES
+    if excess <= 0:
+        return True
+    for name in sorted(entries.keys() - active - {key}, key=lambda name: (entries[name], name)):
+        try:
+            shutil.rmtree(root / name)
+        except OSError as exc:
+            logger.warning("无法清理旧构建缓存 %s：%s", root / name, exc)
+            continue
+        excess -= 1
+        if excess == 0:
+            return True
+    return False
+
+
+def cleanup_stale(web_dir: Path) -> None:
+    """清理上次崩溃留下的临时目录。删不掉不影响本次构建。"""
+    if not local_cache(web_dir):
+        return
+    cutoff = time.time_ns() - TMP_STALE_S * 1_000_000_000
+    for path in cache_root(web_dir).glob(".tmp-*"):
+        try:
+            if (mtime := security.local_directory_mtime_ns(path)) is not None and mtime < cutoff:
+                shutil.rmtree(path)
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            logger.warning("无法清理构建临时目录 %s：%s", path, exc)
 
 
 @contextlib.contextmanager
@@ -291,77 +367,16 @@ def _reclaim_stale(lock_file: Path) -> bool:
         owner = int(lock_file.read_text(encoding="ascii").strip())
     except (OSError, UnicodeError, ValueError):
         pass
-    dead_owner = owner is not None and not _process_is_alive(owner)
-    if not dead_owner and age < LOCK_STALE_S:
+    if owner is not None and _process_is_alive(owner):
         return False
-    reason = f"持有进程 {owner} 已退出" if dead_owner else f"已存在 {age:.0f} 秒"
+    if owner is None and age < LOCK_STALE_S:
+        return False
+    reason = f"持有进程 {owner} 已退出" if owner is not None else f"已存在 {age:.0f} 秒"
     logger.warning("清理过期锁文件 %s（%s）", lock_file, reason)
     with contextlib.suppress(OSError):
         lock_file.unlink()
         return True
     return False
-
-
-#: Win32 错误码：`OpenProcess` 打不开目标进程时，用来区分「进程不存在」。
-_ERROR_INVALID_PARAMETER = 87
-
-
-def _process_is_alive_after_open_failure(error: int) -> bool:
-    """`OpenProcess` 失败后的存活判定：只有「pid 不存在」才算已退出。
-
-    权限不足（`ERROR_ACCESS_DENIED`）或其它错误说明进程可能存在，一律按存活
-    处理，交给锁年龄兜底，避免误回收仍然有效的锁。
-    """
-    return error != _ERROR_INVALID_PARAMETER
-
-
-def _windows_process_is_alive(pid: int) -> bool:
-    """用 Win32 进程句柄的等待语义判断存活。
-
-    这里**不能**用 `os.kill(pid, 0)`：Windows 上 `signal.CTRL_C_EVENT` 就是 `0`，
-    该调用会变成 `GenerateConsoleCtrlEvent(CTRL_C_EVENT, pid)`，向控制台进程组
-    发送 Ctrl+C，把当前进程和同一控制台的其它进程一起打断。
-    """
-    import ctypes
-    from ctypes import wintypes
-
-    SYNCHRONIZE = 0x00100000
-    PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-    WAIT_TIMEOUT = 0x00000102
-
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
-    kernel32.OpenProcess.restype = wintypes.HANDLE
-    kernel32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
-    kernel32.WaitForSingleObject.restype = wintypes.DWORD
-    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
-    kernel32.CloseHandle.restype = wintypes.BOOL
-
-    handle = kernel32.OpenProcess(
-        SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, False, pid
-    )
-    if not handle:
-        return _process_is_alive_after_open_failure(ctypes.get_last_error())
-    try:
-        # 已结束的进程对象立即进入有信号状态；仍在运行的只会等到超时。
-        return kernel32.WaitForSingleObject(handle, 0) == WAIT_TIMEOUT
-    finally:
-        kernel32.CloseHandle(handle)
-
-
-def _process_is_alive(pid: int) -> bool:
-    """判断锁持有进程是否仍存活，不把权限拒绝当成进程死亡。"""
-    if sys.platform == "win32":
-        return _windows_process_is_alive(pid)
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    except OSError:
-        return True
-    return True
 
 
 @contextlib.contextmanager

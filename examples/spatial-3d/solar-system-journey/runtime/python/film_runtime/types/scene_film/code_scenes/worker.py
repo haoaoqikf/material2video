@@ -14,6 +14,7 @@ from playwright.sync_api import sync_playwright
 from film_runtime.core.errors import VideoError
 from .capture import PURE_CONTRACT, _capture, _clip_receipt, _encode
 from .config import copy_build_outputs
+from .workspace import register_worker
 
 
 def run_job(job: dict) -> None:
@@ -21,6 +22,7 @@ def run_job(job: dict) -> None:
     work = Path(job["work"]).resolve()
     output = Path(job["output"]).resolve()
     first, last = int(job["first"]), int(job["last"])
+    register_worker(work.parent)
     work.mkdir(parents=True, exist_ok=True)
     copy_build_outputs(Path(job['sceneJs']).parent, work)
     config = job["config"]

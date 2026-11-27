@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 制作与复现文档
+    url: https://github.com/haoaoqikf/material2video/blob/main/docs/reference/README.md
+    about: 先查独立工程、素材恢复、字幕与渲染验证的技术文档。

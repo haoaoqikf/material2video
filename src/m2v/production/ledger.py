@@ -192,7 +192,15 @@ def evidence_valid_at(base: Path, entries: list) -> bool:
 
 
 def evidence_valid(root: Path, entries: list) -> bool:
-    return evidence_valid_at(outputs(root), entries)
+    from .review_blobs import recorded_file
+
+    try:
+        return bool(entries) and all(
+            dependencies.digest(recorded_file(outputs(root), entry["path"])) == entry["sha256"]
+            for entry in entries
+        )
+    except (M2VError, OSError, KeyError, TypeError):
+        return False
 
 
 def sources(root: Path, request: dict) -> dict:

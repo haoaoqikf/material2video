@@ -37,17 +37,17 @@
 
 ### Requirement: 随附示例全部独立
 
-系统 MUST 在 `examples/<type>/<slug>/` 保留 data-evolution/compound-after-20、principle-metaphor/luck-on-stage、spatial-3d/solar-system-journey、documentary-edit/american-science-milestones 四部示例。每部 MUST 拥有独立工程与恢复说明，保持既有主题、场景身份、数学／事实口径、音轨要求及视听目标；复利示例 MUST 保留原克隆音色，并从使用者本地提供的同一参考 WAV 与音色档案恢复；版本控制 MUST NOT 包含参考录音、参考文本或本地来源路径；MUST NOT 以空场景、静态占位、缩减内容或新增简化示例代替。每例 MUST 证明脱库构建与真实预演；全片导出链路 MUST 有各例完整技术验证，并对受影响代表画面与动态进行复核。图文动效 MUST 继续作为可初始化和制作的视频类型，但不要求附带示例。
+系统 MUST 在 `examples/<type>/<slug>/` 保留 data-evolution/compound-after-20、data-evolution/global-market-cap-race-portrait、principle-metaphor/luck-on-stage、spatial-3d/solar-system-journey、documentary-edit/american-science-milestones 五部示例。每部 MUST 拥有独立工程与恢复说明，保持既有主题、场景身份、数学／事实口径、音轨要求及视听目标；复利示例 MUST 保留原克隆音色，并从使用者本地提供的同一参考 WAV 与音色档案恢复；版本控制 MUST NOT 包含参考录音、参考文本或本地来源路径；MUST NOT 以空场景、静态占位、缩减内容或新增简化示例代替。每例 MUST 证明脱库构建与真实预演；全片导出链路 MUST 有各例完整技术验证，并对受影响代表画面与动态进行复核。图文动效 MUST 继续作为可初始化和制作的视频类型，但不要求附带示例。
 
 #### Scenario: 独立示例矩阵
 
-- **WHEN** 逐一复制四例到仓库外并恢复运行
+- **WHEN** 逐一复制五例到仓库外并恢复运行
 - **THEN** 每例都能通过自己的入口预览与完整导出；三维异步、公式字体、真实媒体、事件音效、旁白和转场按实际采用范围验证，不借其他例通过代替。
 
 #### Scenario: 示例集合与类型独立
 
 - **WHEN** 枚举仓库分发示例并初始化图文动效作品
-- **THEN** 示例目录和测试登记仅包含上述四部作品，图文动效初始化仍生成完整独立工程；文档不提供已删除作品的使用入口。
+- **THEN** 示例目录和测试登记仅包含上述五部作品，图文动效初始化仍生成完整独立工程；文档不提供已删除作品的使用入口。
 
 #### Scenario: 本地恢复复利示例旁白
 
@@ -55,6 +55,11 @@
 - **THEN** 示例以原音色生成四幕双语字幕成片，共 1,161 帧、1920×1080、30 帧/秒，时长 38.7 秒。
 - **WHEN** 参考 WAV 或档案缺失、摘要不匹配
 - **THEN** 示例明确拒绝恢复，保留已有有效文件。
+
+#### Scenario: 竖屏市值榜独立导出
+
+- **WHEN** 使用者恢复竖屏市值榜的独立示例副本并运行完整导出
+- **THEN** 作品以随附历史快照呈现完整排名与榜首交接，给右侧和底部平台叠加留出深色区域，并生成 1080×1920、30 帧/秒、3,214 帧的无音轨成片。
 
 ### Requirement: 清理不必要的通用实现
 改造 MUST 清查通用运行时、视觉组件、类型专用绘制包装、依赖登记、全局配置、测试和文档。失去职责、重复、不可达或无消费者的实现 MUST 删除；有实际采用价值的实现 MUST 收敛到本地模板或明确参考。清理 MUST 有逐项原位置、消费者、处置与验证记录；MUST NOT 建立旧版兼容入口、重复新旧管线或重新打包整个主项目到每部作品。

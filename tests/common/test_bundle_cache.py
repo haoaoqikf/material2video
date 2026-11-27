@@ -21,6 +21,7 @@ import pytest
 import film_runtime.engine.bundle_cache as bundle_cache
 import film_runtime.engine.perf as perf
 import film_runtime.engine.remotion as remotion
+from film_runtime.core import process_liveness
 from m2v.core.errors import M2VError
 
 
@@ -67,7 +68,7 @@ def web(tmp_path, monkeypatch):
     )
 
 
-def _bundle(web, **kwargs):
+def _use_bundle(web, **kwargs):
     options = {
         "web_dir": web.dir,
         "out_dir": web.tmp / "out" / "bundle",
@@ -76,6 +77,11 @@ def _bundle(web, **kwargs):
     }
     options.update(kwargs)
     return remotion.bundle(**options)
+
+
+def _bundle(web, **kwargs):
+    with _use_bundle(web, **kwargs) as result:
+        return result
 
 
 # ---------------------------------------------------------------- 键的覆盖
@@ -231,6 +237,47 @@ def test_disabling_the_cache_always_packs_and_writes_no_entry(web):
     ]
 
 
+def test_cache_evicts_least_recently_used_entry(web, monkeypatch):
+    monkeypatch.setattr(bundle_cache, "MAX_ENTRIES", 2)
+    original = _bundle(web)
+    second_options = {"cache_identity": web.tmp / "second.json"}
+    second = _bundle(web, **second_options)
+    os.utime(original.path.parent, (1, 1))
+    os.utime(second.path.parent, (2, 2))
+    assert _bundle(web).cache_status == "hit"
+
+    third = _bundle(web, cache_identity=web.tmp / "third.json")
+    assert original.path.is_dir()
+    assert third.path.is_dir()
+    assert not second.path.exists()
+
+
+def test_full_cache_keeps_active_bundle_and_uses_temporary_build(web, monkeypatch):
+    monkeypatch.setattr(bundle_cache, "MAX_ENTRIES", 1)
+    with pytest.raises(RuntimeError, match="render interrupted"):
+        with _use_bundle(web) as first:
+            with _use_bundle(web, cache_identity=web.tmp / "another.json") as second:
+                assert second.path == web.tmp / "out" / "bundle"
+                assert second.cache_status == "miss"
+                assert (second.path / "index.html").is_file()
+                assert first.path.is_dir()
+            raise RuntimeError("render interrupted")
+
+    again = _bundle(web, cache_identity=web.tmp / "another.json")
+    assert again.path.parent.parent == bundle_cache.cache_root(web.dir)
+    assert not first.path.exists()
+
+
+def test_abandoned_lease_does_not_keep_an_old_bundle(web, monkeypatch):
+    monkeypatch.setattr(bundle_cache, "MAX_ENTRIES", 1)
+    original = _bundle(web)
+    marker = bundle_cache.retain(web.dir, original.cache_key)
+    monkeypatch.setattr(bundle_cache, "_process_is_alive", lambda _pid: False)
+    _bundle(web, cache_identity=web.tmp / "new.json")
+    assert not marker.exists()
+    assert not original.path.exists()
+
+
 # ---------------------------------------------------------------- 锁
 
 
@@ -323,18 +370,20 @@ def test_exited_process_is_reported_dead():
 
 def test_open_failure_only_treats_missing_pid_as_dead():
     """句柄打不开时只有「pid 不存在」算已退出；权限不足与其它错误按存活处理。"""
-    invalid_parameter = bundle_cache._ERROR_INVALID_PARAMETER
+    invalid_parameter = process_liveness._ERROR_INVALID_PARAMETER
     access_denied = 5
     unexpected = 1234
-    assert bundle_cache._process_is_alive_after_open_failure(invalid_parameter) is False
-    assert bundle_cache._process_is_alive_after_open_failure(access_denied) is True
-    assert bundle_cache._process_is_alive_after_open_failure(unexpected) is True
+    assert process_liveness._process_is_alive_after_open_failure(invalid_parameter) is False
+    assert process_liveness._process_is_alive_after_open_failure(access_denied) is True
+    assert process_liveness._process_is_alive_after_open_failure(unexpected) is True
 
 
-def test_lock_with_live_owner_is_kept_until_it_ages_out(tmp_path, monkeypatch):
+def test_lock_with_live_owner_is_kept_even_after_age_threshold(tmp_path, monkeypatch):
     """无法确认持有者退出时不得回收锁，等待方应以等待超时报错。"""
     lock = tmp_path / "held.lock"
     lock.write_text("4321", encoding="ascii")
+    old = time.time() - bundle_cache.LOCK_STALE_S - 10
+    os.utime(lock, (old, old))
     monkeypatch.setattr(bundle_cache, "_process_is_alive", lambda _pid: True)
     with pytest.raises(bundle_cache.BundleCacheError, match="秒仍未获得锁"):
         with bundle_cache._exclusive(lock, what="测试锁", timeout_s=0.3):

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from m2v.core.delivery import digest, outputs
 from m2v.core.errors import M2VError
-from . import ledger, dependencies, media_evidence
+from . import ledger, dependencies, media_evidence, review_blobs
 from .model import (
     VERSION,
     ROUNDS,
@@ -25,7 +25,7 @@ from .model import (
     now,
 )
 from .storage import local, read, receipt, write
-from .evidence_images import derive_images
+from .evidence_images import derive_images, reuse_native_displays
 
 MEDIA = {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm", ".wav", ".mp3"}
 VIDEO = {".mp4", ".webm"}
@@ -200,12 +200,14 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
     items, files = [], []
     if review_type == 'consistency':
         prior_directory = local(base, prior['packPath']).parent
-        items = prior_pack['items']
+        archived = review_blobs.index(prior_directory, {e['path']: e['sha256'] for e in prior_pack['files']})
+        items, redundant = reuse_native_displays(prior_pack)
+        redundant.add('questions.md')
         # 同轮输入完全相同，复用已核验净化媒体；独立复制防止一包修改污染另一包。
         for record in prior_pack['files']:
-            if record['path'] == 'questions.md':
+            if record['path'] in redundant:
                 continue
-            source = local(prior_directory, record['path'])
+            source = review_blobs.file_for(prior_directory, record['path'], archived)
             destination = local(target, record['path'], exists=False)
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, destination)
@@ -263,17 +265,13 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
                 raise M2VError("有序帧未完整提取，请核对实际帧率与窗口")
             sequence = []
             for frame, image in zip(frames, extracted):
-                derived = {
-                    w: image.with_name(f"{image.stem}-{w}.png")
-                    for w in request["displaySizes"]
-                }
-                derive_images(image, derived)
+                displays = derive_images(image, request["displaySizes"])
                 sequence.append(
                     {
                         "frame": start + frame,
                         "path": image.relative_to(target).as_posix(),
                         "displayPaths": [
-                            p.relative_to(target).as_posix() for p in derived.values()
+                            p.relative_to(target).as_posix() for p in displays
                         ],
                     }
                 )
@@ -281,10 +279,9 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
             seek = ["-vf", f"select=eq(n\\,{start})"] if request.get("film") else []
             ffmpeg(["-i", str(source), *seek, "-map_metadata", "-1",
                     "-frames:v", "1", str(path)])
-            derived = {w: target / f"{name}-{w}.png" for w in request["displaySizes"]}
-            derive_images(path, derived)
+            displays = derive_images(path, request["displaySizes"])
             sequence = [{"frame": start, "path": path.name,
-                         "displayPaths": [p.name for p in derived.values()]}]
+                         "displayPaths": [p.name for p in displays]}]
         items.append(
             {
                 "id": item["id"],
@@ -458,7 +455,7 @@ def _load_package(root, manifest, pack_path, pack_sha256, *, historical=False):
     private = read(local(outputs(root), sealed["path"]))
     if private["manifest"] != receipt(
         outputs(root), path
-    ) or not ledger.evidence_valid_at(path.parent, pack["files"]):
+    ) or not review_blobs.verified(path.parent, pack["files"]):
         raise M2VError("包内证据摘要失配")
     if historical:
         # 仅显式视觉复用可忽略旧源码与当前源码的差异。封存请求、原摘要、
@@ -648,8 +645,8 @@ def import_report(root, manifest, path):
         not isinstance(invocation["inputPaths"], list)
         or not invocation["inputPaths"]
         or any(
-            not local(outputs(root), p).is_relative_to(pack_dir)
-            or local(outputs(root), p).relative_to(pack_dir).as_posix() not in allowed
+            not local(outputs(root), p, exists=False).is_relative_to(pack_dir)
+            or local(outputs(root), p, exists=False).relative_to(pack_dir).as_posix() not in allowed
             for p in invocation["inputPaths"]
         )
     ):

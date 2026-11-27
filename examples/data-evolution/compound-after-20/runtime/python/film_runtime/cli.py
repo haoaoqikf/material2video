@@ -149,22 +149,24 @@ def _serve(project: dict, options) -> dict:
     from .types.scene_film import code_scenes
     from .engine.browser import configure
     configure()
-    prepared = _current(project, options)
-    _build()
-    prepared = code_scenes.materialize(ROOT, prepared, 0, prepared['durationInFrames'])
-    page_props = ROOT / 'outputs/preview-props.json'
-    with LocalServer(ROOT, cors=True) as server:
-        audio = prepared.get('audio', {}).get('segments', [])
-        from .core.audio_policy import declared_audio
-        _write_json(page_props, {**prepared['props'], 'mediaBase': server.base_url + '/',
-            **({'previewAudio': server.url_for(ROOT / audio[0]['path'])}
-               if declared_audio(prepared) and audio else {})})
-        url = contract_page.with_storyboard_query(server.url_for(contract_page.contract_page_path()),
-                                                 '/outputs/preview-props.json') + '&video-preview=1'
-        print(json.dumps({'status': 'serving', 'url': url}, ensure_ascii=False), flush=True)
-        # 服务仅由明确的preview --serve持续持有；Ctrl+C在main统一处理。
-        import threading
-        threading.Event().wait()
+    from .types.scene_film.code_scenes.cache import scene_cache
+    with scene_cache(ROOT):
+        prepared = _current(project, options)
+        _build()
+        prepared = code_scenes.materialize(ROOT, prepared, 0, prepared['durationInFrames'])
+        page_props = ROOT / 'outputs/preview-props.json'
+        with LocalServer(ROOT, cors=True) as server:
+            audio = prepared.get('audio', {}).get('segments', [])
+            from .core.audio_policy import declared_audio
+            _write_json(page_props, {**prepared['props'], 'mediaBase': server.base_url + '/',
+                **({'previewAudio': server.url_for(ROOT / audio[0]['path'])}
+                   if declared_audio(prepared) and audio else {})})
+            url = contract_page.with_storyboard_query(server.url_for(contract_page.contract_page_path()),
+                                                     '/outputs/preview-props.json') + '&video-preview=1'
+            print(json.dumps({'status': 'serving', 'url': url}, ensure_ascii=False), flush=True)
+            # 服务仅由明确的preview --serve持续持有；Ctrl+C在main统一处理。
+            import threading
+            threading.Event().wait()
     return {'status': 'stopped'}
 
 

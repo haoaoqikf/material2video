@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -12,10 +14,42 @@ from film_runtime.core.errors import VideoError
 from m2v.core.project import load_current_prepared, load_project
 from m2v.types.scene_film import adapter, explainer
 from film_runtime.types.scene_film import code_scenes
+from film_runtime.types.scene_film.code_scenes import workspace
 from helpers.scene_film import (
     SOURCE, board, code_scene, fake_tts, prepare_build, project, requires_node,
     scene_page, scene_root, write_source,
 )
+
+
+def test_recording_workspace_reaps_only_abandoned_owned_directories(tmp_path, monkeypatch):
+    cache = tmp_path / "outputs" / "code-cache"
+    root = cache / ".recordings"
+    root.mkdir(parents=True)
+    abandoned = root / "code-9931-11111111"
+    parent_alive = root / "code-9932-22222222"
+    worker_alive = root / "code-9931-33333333"
+    recent = root / "code-9931-44444444"
+    unknown = root / "code-unsupported"
+    for directory in (abandoned, parent_alive, worker_alive, recent, unknown):
+        directory.mkdir()
+        (directory / "frame-000000.png").write_bytes(b"scratch")
+    (worker_alive / ".worker-9933").touch()
+    old = time.time() - workspace.STALE_SECONDS - 1
+    for directory in (abandoned, parent_alive, worker_alive, unknown):
+        os.utime(directory, (old, old))
+    published = cache / "published.mp4"
+    published.touch()
+    monkeypatch.setattr(workspace, "recording_ended", lambda pid, *_args, **_kwargs: pid not in (9932, 9933))
+
+    with pytest.raises(RuntimeError, match="capture interrupted"):
+        with workspace.recording_workspace(cache) as directory:
+            assert not abandoned.exists()
+            assert all(item.exists() for item in (parent_alive, worker_alive, recent, unknown, published))
+            workspace.register_worker(directory)
+            assert (directory / f".worker-{os.getpid()}").is_file()
+            raise RuntimeError("capture interrupted")
+    assert not directory.exists()
+
 
 def storyboard(scene: dict) -> dict:
     """只保留这一幕，便于按片段数量断言录制与缓存复用。"""
@@ -347,3 +381,26 @@ def test_partial_recording_is_reused_when_completing_scene(tmp_path, monkeypatch
     assert sorted(captured) == list(range(8)), "已有区间不得再次采集"
     clip = root / completed["props"]["compiledScenes"][0]["mediaPath"]
     code_scenes._verify_clip(clip, 8)
+
+
+def test_scene_cache_prunes_only_unreferenced_old_pairs(tmp_path, monkeypatch):
+    from film_runtime.types.scene_film.code_scenes import cache as storage
+
+    cache = tmp_path / "outputs/code-cache"
+    cache.mkdir(parents=True)
+    monkeypatch.setattr(storage, "CACHE_BYTES", 21)
+    oldest, pinned, latest = (cache / (char * 64 + "-0-9.mp4") for char in "abc")
+    for index, video in enumerate((oldest, pinned, latest)):
+        video.write_bytes(b"x" * 9)
+        video.with_suffix(".json").write_bytes(b"{}")
+        os.utime(video, (100 + index, 100 + index))
+    (cache.parent / "materialized.json").write_text(json.dumps({
+        "path": latest.relative_to(tmp_path).as_posix(),
+    }), encoding="utf-8")
+    (cache.parent / "visual-notes.md").write_text(pinned.name, encoding="utf-8")
+
+    with storage.scene_cache(tmp_path):
+        assert not oldest.exists()
+        assert not oldest.with_suffix(".json").exists()
+        with storage.scene_cache(tmp_path):
+            assert pinned.is_file() and latest.is_file()

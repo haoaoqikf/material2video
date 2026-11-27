@@ -1,7 +1,7 @@
 """按 models/qwen3-tts/registry.json 恢复并校验 Qwen3-TTS 模型。
 
-模型与对齐模型二进制不入库。默认离线：从 M2V_TTS_CACHE、models/.cache 或
-models/files 查找；只有显式 ``--download`` 才联网。参考音色属于作品资产，
+模型与对齐模型二进制不入库。同一磁盘从本机摘要缓存硬链接恢复，
+跨磁盘自动复制。仍可从 M2V_TTS_CACHE、models/.cache 或 models/files 查找；只有显式 ``--download`` 才联网。参考音色属于作品资产，
 只能校验，不能从模型仓库下载。
 
     python models/qwen3-tts/fetch.py --check --voice clone_tuixiu
@@ -16,6 +16,7 @@ import json
 import os
 import shutil
 import sys
+import tempfile
 import urllib.request
 from pathlib import Path
 
@@ -133,59 +134,110 @@ def _urls(entry: dict) -> list[str]:
     return []
 
 
-def _download(entry: dict) -> Path:
+def _shared(entry: dict) -> Path:
+    override = os.environ.get("M2V_QWEN3_MODEL_STORE")
+    if override:
+        base = Path(override).expanduser()
+    elif os.name == "nt" and os.environ.get("LOCALAPPDATA"):
+        base = Path(os.environ["LOCALAPPDATA"]) / "material2video" / "qwen3-tts"
+    else:
+        cache_root = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache")
+        base = cache_root / "material2video" / "qwen3-tts"
+    sha = entry["sha256"]
+    return base / "objects" / sha[:2] / sha
+
+
+def _stage(directory: Path) -> Path:
+    directory.mkdir(parents=True, exist_ok=True)
+    fd, name = tempfile.mkstemp(prefix=".weight-", dir=directory)
+    os.close(fd)
+    return Path(name)
+
+
+def _download(entry: dict, target: Path) -> None:
     urls = _urls(entry)
     if not urls:
         raise SystemExit(f"{entry['file']}：没有可用的下载来源")
-    staged = CACHE / entry["file"]
-    staged.parent.mkdir(parents=True, exist_ok=True)
     last = None
     for url in urls:
         print(f"下载 {entry['file']}：{url}")
         try:
-            with urllib.request.urlopen(url, timeout=180) as response, staged.open("wb") as out:
+            with urllib.request.urlopen(url, timeout=180) as response, target.open("wb") as out:
                 shutil.copyfileobj(response, out)
-        except Exception as exc:  # 尝试下一个镜像或 revision
+        except OSError as exc:
             last = exc
-            staged.unlink(missing_ok=True)
             continue
-        problem = verify(staged, entry)
-        if problem:
-            staged.unlink(missing_ok=True)
-            last = RuntimeError(f"下载后{problem}")
-            continue
-        return staged
+        problem = verify(target, entry)
+        if not problem:
+            return
+        last = RuntimeError(f"下载后{problem}")
     raise SystemExit(f"{entry['file']}：下载失败（{last}）")
 
 
-def restore(entry: dict, *, download: bool) -> None:
+def _require(path: Path, entry: dict) -> None:
+    problem = verify(path, entry)
+    if problem:
+        raise SystemExit(f"{entry['file']}：{path} {problem}；拒绝覆盖")
+
+
+def _publish(source: Path, target: Path, entry: dict, *, portable: bool = False) -> bool:
+    """先校验暂存内容，再原子替换目标。同盘优先硬链接，跨盘保留普通副本。"""
+    pending = _stage(target.parent)
+    linked = False
+    try:
+        if not portable:
+            pending.unlink()
+            try:
+                os.link(source, pending)
+                linked = True
+            except OSError:
+                pass
+        if not linked:
+            shutil.copyfile(source, pending)
+        _require(pending, entry)
+        os.replace(pending, target)
+    finally:
+        pending.unlink(missing_ok=True)
+    return linked
+
+
+def restore(entry: dict, *, download: bool, portable: bool = False) -> None:
     placed = _safe(entry["file"])
-    if placed.is_file():
-        problem = verify(placed, entry)
-        if problem:
-            raise SystemExit(f"{entry['file']}：已存在但{problem}；拒绝覆盖，请自行处理该文件")
-        return
     if entry.get("provider") == "project":
-        raise SystemExit(
-            f"{entry['file']}：参考音色属于作品资产，缺失时不能从模型仓库恢复；"
-            "请从作品来源重新导出并核对 sha256")
-    source = None
-    for candidate in _candidates(entry):
-        if candidate.is_file():
-            problem = verify(candidate, entry)
-            if problem:
-                raise SystemExit(f"{entry['file']}：找到 {candidate} 但{problem}；拒绝覆盖")
-            source = candidate
-            break
-    if source is None and download:
-        source = _download(entry)
-    if source is None:
-        raise SystemExit(
-            f"{entry['file']}：缺少模型文件。请设置 M2V_TTS_CACHE、放入 {CACHE}，"
-            "或确认有网络后使用 --download")
-    placed.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy(source, placed)
-    print(f"ok  {entry['file']}")
+        _require(placed, entry)
+        return
+    if placed.is_file():
+        _require(placed, entry)
+        if portable:
+            if placed.stat().st_nlink > 1:
+                _publish(placed, placed, entry, portable=True)
+            return
+    shared = _shared(entry)
+    if shared.is_file():
+        _require(shared, entry)
+    else:
+        source = next((p for p in _candidates(entry) if p.is_file()), None)
+        if source is not None:
+            if source != placed:
+                _require(source, entry)
+            _publish(source, shared, entry)
+        elif download:
+            staged = _stage(shared.parent)
+            try:
+                _download(entry, staged)
+                os.replace(staged, shared)
+            finally:
+                staged.unlink(missing_ok=True)
+        else:
+            raise SystemExit(f"{entry['file']}：缺少模型文件；设置 M2V_TTS_CACHE 或使用 --download")
+
+    if placed.is_file() and os.path.samefile(shared, placed):
+        return
+    # 不用跨盘复制覆盖一份现有且已核验的本地权重。
+    if placed.is_file() and placed.stat().st_dev != shared.stat().st_dev:
+        return
+    linked = _publish(shared, placed, entry, portable=portable)
+    print(f"ok  {entry['file']}（{'共享' if linked else '独立副本'}）")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -194,10 +246,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="只校验，不复制或下载")
     parser.add_argument("--restore", action="store_true", help="从本地缓存恢复（默认）")
     parser.add_argument("--download", action="store_true", help="允许联网下载缺失文件")
+    parser.add_argument("--portable", action="store_true", help="恢复可独立编辑的模型副本")
+    parser.add_argument("--project-root", type=Path, help="用当前恢复脚本处理指定的存量作品")
     parser.add_argument("--voice", help="同时校验所选克隆音色，例如 clone_tuixiu")
     options = parser.parse_args(argv)
-    if options.check and (options.restore or options.download):
+    if options.check and (options.restore or options.download or options.portable):
         raise SystemExit("--check 不能与 --restore/--download 同时使用")
+    if options.project_root is not None:
+        global HERE, FILES, CACHE, REGISTRY
+        HERE = options.project_root.resolve() / "models/qwen3-tts"
+        FILES, CACHE, REGISTRY = HERE.parent / "files", HERE.parent / ".cache", HERE / "registry.json"
     registry = load()
     entries = selected(registry, options.voice)
     if options.check:
@@ -214,7 +272,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ok  Qwen3-TTS 模型已就绪（{len(entries)} 个文件）")
         return 0
     for entry in entries:
-        restore(entry, download=options.download)
+        restore(entry, download=options.download, portable=options.portable)
     return 0
 
 

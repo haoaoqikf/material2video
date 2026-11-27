@@ -51,7 +51,7 @@ uv run m2v qa --project examples/spatial-3d/solar-system-journey
 uv run m2v status --project examples/spatial-3d/solar-system-journey --history --json
 ```
 
-文中独立终审为历史证据。重新验收按[现行审核策略](../../../.agents/skills/material2video/references/review-contract.md)执行。生成媒体、网页采集和评审包位于本作品outputs，不入库。旧版清单及38项原字节材料保留在`outputs/remake-baseline-20261110/`；旧MP4及原溯源旁车曾被误删，已在受保护基线目录重建并正式登记，原字节与重建材料明确区分，详见验证记录，不覆盖历史结论。
+文中独立终审为历史证据。重新验收按[现行审核策略](../../../.agents/skills/material2video/references/review-contract.md)执行。生成媒体、网页采集和评审包位于本作品outputs，不入库。旧 MP4 和原溯源旁车曾丢失，随后按当时材料重建并登记。旧版清单、原字节材料副本及重建基线已清理，历史验证记录继续保留。
 
 ## 站点与实现
 

@@ -114,11 +114,11 @@ export default function Scene({props}: CodeSceneProps) {
     assert all('stillPath' not in scene for scene in props['compiledScenes'])
     config = work / 'props.json'
     config.write_text(json.dumps(payload, ensure_ascii=False), encoding='utf-8')
-    bundle = remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / 'bundle',
-                             storyboard_path=config, content_root=root.parent, workspace_root=root.parent, cache=True)
-    out = work / 'result.png'
-    remotion.render_still(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=config,
-                          out=out, frame=3, scale=2, composition_id='ArticleExplainer')
+    with remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / 'bundle',
+                             storyboard_path=config, content_root=root.parent, workspace_root=root.parent, cache=True) as bundle:
+        out = work / 'result.png'
+        remotion.render_still(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=config,
+                              out=out, frame=3, scale=2, composition_id='ArticleExplainer')
     assert struct.unpack('>II', out.read_bytes()[16:24]) == (3840, 2160)
     raw = subprocess.run([get_ffmpeg_exe(), '-v', 'error', '-i', str(out),
                           '-vf', 'crop=2:2:100:100', '-pix_fmt', 'rgb24', '-f', 'rawvideo', '-'],

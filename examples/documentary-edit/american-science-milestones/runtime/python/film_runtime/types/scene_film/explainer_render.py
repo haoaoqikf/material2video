@@ -22,6 +22,7 @@ from film_runtime.core import frames
 from film_runtime.engine import audio, contract_page, output_validation, perf, remotion, render_pipeline
 from film_runtime.engine.http_server import LocalServer
 from .explainer_prepare import implementation_digest
+from .code_scenes.cache import using_scene_cache
 
 logger = logging.getLogger(__name__)
 
@@ -171,6 +172,7 @@ def visual_provenance(prepared: dict) -> dict:
                        "shots": {shot["id"]: shot.get("post") for shot in shots}}}
 
 
+@using_scene_cache
 def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_frame=None, output=None,
               defer_validation=False, jobs: int = 1) -> Path:
     prepared = current(root, project)
@@ -193,30 +195,32 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
         work = Path(temporary)
         props_file = work / "props.json"
         props_file.write_text(json.dumps({**prepared["props"], "mediaBase": server.base_url + "/"}, ensure_ascii=False), encoding="utf-8")
-        outcome = remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / "bundle", storyboard_path=entry,
-            content_root=root.parent, workspace_root=root.parent, cache=True)
-        timings.record("bundle", outcome.build_seconds)
-        timings.record("cache", outcome.cache_seconds)
-        silent = work / "silent.mp4"
-        if jobs < 1:
-            raise VideoError("--jobs 必须为正整数")
-        render_start = time.monotonic()
-        if jobs > 1 and not preview:
-            remotion.render_parallel(
-                web_dir=remotion.web_dir(), bundle_dir=outcome.path, props=props_file,
-                composition_id="SceneFilm", out=silent,
-                total_frames=prepared["durationInFrames"], fps=fps, width=width, height=height,
-                crf=18, preset="medium", jobs=jobs)
-            timings.skip("metadata")
-            session = {"renderJobs": jobs, "readySeconds": 0}
-        else:
-            confirm = render_pipeline.metadata_confirm(
-                (fps, width, height, prepared["durationInFrames"]), silent, crf=18, preset="medium",
-                frames=frames_to_render, start_frame=start_frame, label="讲解 composition")
-            session = remotion.render_session(web_dir=remotion.web_dir(), bundle_dir=outcome.path, props=props_file,
-                composition_id="SceneFilm", on_metadata=confirm, timeout_s=3600,
-                on_line=remotion.progress_handler(frames_to_render))
-            timings.record("metadata", float(session.get("readySeconds") or 0))
+        with remotion.bundle(
+            web_dir=remotion.web_dir(), out_dir=work / "bundle", storyboard_path=entry,
+            content_root=root.parent, workspace_root=root.parent, cache=True,
+        ) as outcome:
+            timings.record("bundle", outcome.build_seconds)
+            timings.record("cache", outcome.cache_seconds)
+            silent = work / "silent.mp4"
+            if jobs < 1:
+                raise VideoError("--jobs 必须为正整数")
+            render_start = time.monotonic()
+            if jobs > 1 and not preview:
+                remotion.render_parallel(
+                    web_dir=remotion.web_dir(), bundle_dir=outcome.path, props=props_file,
+                    composition_id="SceneFilm", out=silent,
+                    total_frames=prepared["durationInFrames"], fps=fps, width=width, height=height,
+                    crf=18, preset="medium", jobs=jobs)
+                timings.skip("metadata")
+                session = {"renderJobs": jobs, "readySeconds": 0}
+            else:
+                confirm = render_pipeline.metadata_confirm(
+                    (fps, width, height, prepared["durationInFrames"]), silent, crf=18, preset="medium",
+                    frames=frames_to_render, start_frame=start_frame, label="讲解 composition")
+                session = remotion.render_session(web_dir=remotion.web_dir(), bundle_dir=outcome.path, props=props_file,
+                    composition_id="SceneFilm", on_metadata=confirm, timeout_s=3600,
+                    on_line=remotion.progress_handler(frames_to_render))
+                timings.record("metadata", float(session.get("readySeconds") or 0))
         timings.record("render", max(0, time.monotonic() - render_start - float(session.get("readySeconds") or 0)))
         has_audio = _has_audio(prepared)
         final = work / "final.mp4" if has_audio else silent
