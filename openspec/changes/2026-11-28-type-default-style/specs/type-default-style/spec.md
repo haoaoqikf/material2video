@@ -1,0 +1,55 @@
+## Purpose
+
+为五类作品确定可重现的视觉方向、明确变更授权并绑定实际证据。让作者、独立评审者和运行工具使用同一版本的目标，持续检查可量化约束与成片完成度。
+
+## ADDED Requirements
+
+### Requirement: 类型指定唯一默认风格
+
+系统 MUST 为每个当前视频类型发布恰好一个带修订号的默认规范，覆盖配色、排版、栅格、图形、运动、信息层级、禁用项和有明确用途的整体参考。发布映射如下。
+
+| 类型 | 默认标识 | 默认风格名 |
+| --- | --- | --- |
+| `text-motion` | `ibm-2x-kinetic-type@1` | IBM 2x Grid Kinetic Typography |
+| `data-evolution` | `apple-keynote-presentation@1` | Apple Keynote Presentation Style |
+| `principle-metaphor` | `kurzgesagt-vector-explainer@1` | Kurzgesagt Vector Explainer |
+| `spatial-3d` | `nasa-svs-scientific-visualization@1` | NASA SVS Scientific Visualization |
+| `documentary-edit` | `pbs-frontline-evidence-led@1` | PBS FRONTLINE Evidence-led Documentary |
+
+初始化 MUST 把类型默认标识、修订及本地规范身份写入工程 v4，绑定可离线读取的规范副本。类型目录更新 MUST NOT 静默改变已初始化工程的视觉目标。助手 MUST 使用生效规范及其绑定的整体参考。专项素材、内容和实现方案可在规范内按职责比较。
+
+#### Scenario: 按类型初始化
+- **WHEN** 初始化任一当前类型且未提供在案的明确覆盖
+- **THEN** 新工程固化该类型唯一默认规范，`m2v types` 可查看该映射，移出仓库后仍能核验相同目标。
+
+#### Scenario: 缺失固定参考
+- **WHEN** 固定整体参考不可访问或缺少所需证据
+- **THEN** 工具与制作记录 MUST 标出受影响项和缺口。整体目标保持未验证，助手 MUST NOT 自行换标杆。
+
+### Requirement: 用户显式覆盖及有效范围
+
+覆盖 MUST 有用户明确指定或对明确提议的确认，保存原话、可追溯来源、带时区时间、目标规范的标识和修订、全片或已有场景 ID 范围。未限定范围的整体指定 MUST 适用于全片。覆盖自定义参考时 MUST 转成可验证并由用户明确授权的本地目标，用户授权与作者执行转化应可区分。没有在案授权、发生范围重叠、场景不存在、规范无法复原或目标摘要不符时 MUST 失败。范围外按默认规范实施与对照。
+
+#### Scenario: 有效单场覆盖
+- **WHEN** 用户明确指定 `opening` 使用另一目标，且登记和本地证据匹配
+- **THEN** `opening` 按该目标及实际参考对照，其他场景按类型默认对照，跨界窗口检查两端职责和接续。
+
+#### Scenario: 模糊建议或失败后换目标
+- **WHEN** 用户只要求更精致，或助手试图为通过而更换整体标杆
+- **THEN** 仍使用原有效规范和原目标。发生用户明确授权的新目标时，仅依现有改靶与复查契约处理受影响范围。
+
+### Requirement: 风格约束与实际采样门禁
+
+工程校验 MUST 检查必填绑定、目录或授权一致性、规范内容和摘要、作用范围、规则白名单、禁用项及规则适用性。技术 QA MUST 对代表和风险帧及适用过程做可重放取样，检查实际样式、几何、可测颜色及对应事件和时间参数。发现明确违例 MUST 标记失败，缺少可检查输入或所需覆盖 MUST 标记未验证并给出位置和原因。预演及取证仍可产出候选。正式完成 MUST 具备有效风格 QA 和现有独立评审证据，且两者绑定当前候选与目标修订。
+
+#### Scenario: 声明正确而画面违例
+- **WHEN** 项目声明正确风格但实际标签越过安全区，或运行时实际取值违反适用规则
+- **THEN** QA MUST 记录帧位、对象、观测值和规则，并阻止报告正式完成。
+
+#### Scenario: 数值合规则效果不足
+- **WHEN** 可机检项全部通过，但盲看或对照发现主次、机制、阅读或成片工艺存在实质差距
+- **THEN** 独立评审 MUST 按原目标记录必改，当前作品不得报告完成。
+
+#### Scenario: 视觉证据过期
+- **WHEN** 生效规范、参考媒体摘要、授权范围或候选来源发生变化
+- **THEN** 旧报告保留其观察结论和适用范围，新验收 MUST 取得对应的现行证据。
