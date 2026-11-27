@@ -10,6 +10,10 @@ from m2v.core.errors import M2VError
 from m2v.engine import assets_tools
 from helpers.scene_film import project
 
+# 这些用例需要恢复不入库的字体，默认排除；本地恢复字体后用 --full 运行。
+pytestmark = pytest.mark.restored
+
+
 
 def _sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()

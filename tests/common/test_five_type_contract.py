@@ -12,6 +12,10 @@ from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_project, load_current_prepared
 from m2v.type_system.catalog import catalog
 
+# 这些用例需要恢复不入库的字体，默认排除；本地恢复字体后用 --full 运行。
+pytestmark = pytest.mark.restored
+
+
 ROOT = Path(__file__).resolve().parents[2]
 KINDS = ("text-motion", "data-evolution", "principle-metaphor", "spatial-3d", "documentary-edit")
 
