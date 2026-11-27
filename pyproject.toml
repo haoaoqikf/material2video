@@ -54,6 +54,7 @@ dev = [
     "fonttools>=4.50,<5",
     "numpy>=2,<3",
     "pytest>=8,<9",
+    "pytest-timeout>=2.3,<3",
     "pytest-xdist>=3.6,<4",
 ]
 

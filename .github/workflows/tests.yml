@@ -45,4 +45,4 @@ jobs:
             targets=$(ls tests/common/test_*.py | awk -v keep=${{ matrix.slice }} 'NR % 2 == keep' | tr '\n' ' ')
             echo "本分片文件：$targets"
           fi
-          python -m pytest -n 2 --dist loadfile $targets
+          python -m pytest -n 2 --dist loadfile --timeout=180 --timeout-method=thread $targets
