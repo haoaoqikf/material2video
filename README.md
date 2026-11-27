@@ -25,49 +25,43 @@
 
 ## 三分钟做出第一条视频
 
-先用图文动效模板做一条三秒标题视频。首次安装依赖、恢复字体和下载浏览器的时间取决于网络。
+先用图文动效模板做一条三秒标题视频。这里的「三分钟」指最短上手路径，不是耗时保证；依赖、字体、浏览器和首次打包都可能增加等待时间。
 
-需要 Python 3.11 或更新版本、uv、Node.js 22.12 或更新版本，以及 pnpm 10.15.0。
-在仓库根目录运行这条命令。PowerShell 和 bash 通用。
+**准备环境。** 使用 `git clone` 检出的仓库，保留 `.git`；GitHub 的源码 ZIP 不能直接用于 `m2v init`。需要 Python 3.11+、uv、Node.js 22.12+ 和 pnpm **10.15.0**；用 `pnpm --version` 核对，不用跟随安装时的升级提示。若用 npm 管理 pnpm，可用 `npm install --global pnpm@10.15.0` 安装指定版本。
+
+**先备字体。** 本模板的 `Inter-Variable.ttf` 和 `NotoSansSC-Variable.ttf` 未登记自动下载地址。准备与 [字体登记](fonts/registry.json) 摘要一致的文件，设置 `M2V_FONT_CACHE` 指向该目录（本机复用已恢复的 `fonts/files/`），也可以在初始化后放入作品的 `fonts/.cache/`。`--download` 不会代替这一步，系统字体也不会替补。PowerShell 用 `$env:M2V_FONT_CACHE = '字体缓存的绝对路径'`；bash 用 `export M2V_FONT_CACHE='/字体缓存的绝对路径'`。
+
+**安装并初始化。** 从仓库根目录依次运行；下面的命令在 PowerShell 和 bash 中逐行相同，任一步失败先停下处理。PowerShell 若拦截 `pnpm.ps1`，改用 `pnpm.cmd`，不必修改执行策略。
 
 ```text
+uv sync
 uv run m2v init --type text-motion --project demo
+cd videos/text-motion/demo
+pnpm install --frozen-lockfile --ignore-workspace
+uv sync --frozen
+pnpm run setup --download --install-browser
 ```
 
-打开生成的 `videos/text-motion/demo/`，改两处内容。
+在作品目录安装依赖，不要在仓库根目录运行后面三条。若设置了独立内容根，进入 `m2v init` 打印的作品目录。若渲染提示缺 Chromium，在该作品目录重跑上面的 `setup` 命令；它安装该作品所用 Playwright 版本匹配的 Chromium，不使用系统浏览器。
+
+**改样并导出。** 在作品目录改两处内容：
 
 1. 在 `storyboard.json` 的第一幕找到 `scenes[0].content.props`，
    将空对象换成 `{"title": "我的第一条视频"}`。开场场景从这个字段读取屏幕标题。
 2. 在 `scenes/opening.tsx` 把 `background: '#0b0d12'` 改为
    `background: '#17365d'`，用这个颜色作为整张画布的主色。
 
-回到仓库根目录，按当前 shell 选择一组命令。依赖与资源就绪后，最后一条制作并导出视频。
+仍在作品目录运行：
 
-**PowerShell**
-
-```powershell
-Push-Location videos/text-motion/demo
-pnpm install --frozen-lockfile --ignore-workspace
-uv sync --frozen
-pnpm run setup --download --install-browser
+```text
 pnpm run render
-Pop-Location
 ```
 
-**bash**
+成片在作品的 `outputs/video.mp4`，默认从仓库根目录看是 `videos/text-motion/demo/outputs/video.mp4`。若 Windows 的播放器提示 `0x80070005`，检查成片所在目录对当前用户的读取权限；也可以在同一个终端用 `ffprobe` 核对文件。继续编辑分镜和场景源码后，在同一作品目录重新导出。 [环境与资源恢复说明](templates/standalone/README.md)
 
-```bash
-(
-  cd videos/text-motion/demo &&
-  pnpm install --frozen-lockfile --ignore-workspace &&
-  uv sync --frozen &&
-  pnpm run setup --download --install-browser &&
-  pnpm run render
-)
-```
+**本机实测：Windows 11 / Node 22.23.2 / pnpm 10.15.0**（Python 3.14.9、uv 0.9.11）。在临时干净克隆中首次安装至 `setup` 就绪 **37.76 秒**，改标题与主色至导出 **154.75 秒**，定位成片并运行 `ffprobe` **0.22 秒**。成片为 **3.000 秒、1920×1080、32,284 字节**。计时不含克隆或取得字体，复用了本机已有的依赖缓存和 Chromium，不是无缓存下载耗时。Linux 和 macOS **未在此环境验证**。
 
-从仓库根目录打开 `videos/text-motion/demo/outputs/video.mp4`，就能看到改过标题和主色的成片。
-继续编辑分镜和场景源码，在同一作品目录重新导出。 [环境与资源恢复说明](templates/standalone/README.md)
+也可以把[十秒竖屏文字动效任务](docs/agent-quickstart.md)交给编码助手，按制作 Skill 完整走一遍。
 
 ## 它是怎么工作的
 
@@ -107,7 +101,7 @@ Pop-Location
 ## 参与与许可
 
 欢迎反馈制作与复现中的问题，或参与改进文档、示例和工具链。
-[CONTRIBUTING.md](https://github.com/haoaoqikf/material2video/blob/main/CONTRIBUTING.md) 将在阶段 C 补齐。
+[贡献指南](CONTRIBUTING.md)介绍开发验证和维护者发布流程；[首发说明](docs/release-notes/v0.1.0.md)列出能力和复现边界。
 仓库内的验证与提交约定见 [AGENTS.md](AGENTS.md)。
 
 原创代码、文档及示例源码和原创文案采用 [MIT 许可证](LICENSE)。

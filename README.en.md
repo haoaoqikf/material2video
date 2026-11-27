@@ -25,49 +25,7 @@ All five examples can be restored and exported as standalone projects. [Example 
 
 ## Make your first video in three minutes
 
-Start with a three-second title video. The first dependency, font, and browser downloads take extra time depending on your connection.
-
-You need Python 3.11 or later, uv, Node.js 22.12 or later, and pnpm 10.15.0.
-From the repository root, run the same initialization command in PowerShell or bash.
-
-```text
-uv run m2v init --type text-motion --project demo
-```
-
-Open the generated `videos/text-motion/demo/` folder and edit two files.
-
-1. In `storyboard.json`, replace the empty object at `scenes[0].content.props`
-   with `{"title": "My First Video"}`. The opening scene reads its on-screen title from this field.
-2. In `scenes/opening.tsx`, change `background: '#0b0d12'` to
-   `background: '#17365d'` to set the canvas color.
-
-From the repository root, run the block for your shell. The last command renders and exports the video.
-
-**PowerShell**
-
-```powershell
-Push-Location videos/text-motion/demo
-pnpm install --frozen-lockfile --ignore-workspace
-uv sync --frozen
-pnpm run setup --download --install-browser
-pnpm run render
-Pop-Location
-```
-
-**bash**
-
-```bash
-(
-  cd videos/text-motion/demo &&
-  pnpm install --frozen-lockfile --ignore-workspace &&
-  uv sync --frozen &&
-  pnpm run setup --download --install-browser &&
-  pnpm run render
-)
-```
-
-Open `videos/text-motion/demo/outputs/video.mp4` from the repository root to see your new title and color.
-Keep editing the storyboard and scene source, then export again from the same project. [Environment and asset recovery](templates/standalone/README.md)
+[Follow the tested three-second title video walkthrough](README.md#三分钟做出第一条视频) for the shared PowerShell and bash commands, exact font prerequisites, and measured Windows 11 timings. Linux and macOS were not verified in this run. [Copy a ten-second portrait video task for a coding assistant](docs/agent-quickstart.md).
 
 ## How it works
 
@@ -105,7 +63,7 @@ See the [OpenSpec specifications](openspec/specs/) for current behavior and the 
 ## Contributing and licensing
 
 Feedback on production or reproduction issues is welcome, along with improvements to the docs, examples, and tools.
-[CONTRIBUTING.md](https://github.com/haoaoqikf/material2video/blob/main/CONTRIBUTING.md) will arrive in Phase C.
+See the [contributing guide](CONTRIBUTING.md) and [v0.1.0 release notes with English summary](docs/release-notes/v0.1.0.md#英文摘要).
 See [AGENTS.md](AGENTS.md) for the repository’s verification and commit conventions.
 
 Original code, documentation, example source, and original scripts use the [MIT License](LICENSE).
