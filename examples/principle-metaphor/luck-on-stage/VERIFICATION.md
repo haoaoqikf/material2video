@@ -7,14 +7,14 @@
 本文保留原制作版本的设计和评审记录。新版交付按[现行审核策略](../../../.agents/skills/material2video/references/review-contract.md)执行正式关键帧、适用关键样片、技术 QA 与总代理整片复核，旧结论仅覆盖原版。
 
 
-[当前 41 秒成片](outputs/video.mp4) SHA-256：`4bd9c6c18f898b61d120aed89e61dcf41876dd4de856b713b1d8e2225745e702`。1920×1080、30 fps、1230 帧；H.264 画面与 AAC 音轨可解码。当前周期为 `luck-example-20261106-copy-refresh`，成片已生成，`production.complete=false`。
+当前 41 秒成片的本地路径为 `outputs/video.mp4`，SHA-256 为 `4bd9c6c18f898b61d120aed89e61dcf41876dd4de856b713b1d8e2225745e702`。1920×1080、30 fps、1230 帧，H.264 画面与 AAC 音轨可解码。当前周期为 `luck-example-20261106-copy-refresh`，成片已生成，`production.complete=false`。以下 `outputs/` 路径均指作品目录内的本地证据。
 
 ## 本轮文案修改与复核
 
 - 修改前成片当时保存在 `outputs/baselines/6db421dbf6674493b6e4ff1a8b3e9df0/`（已清理），SHA-256 为 `44535545c819c050586c799bce141454cc3b29f983587afd11fc821edfb2b327`；修改前源码另存于 `outputs/revision-sources/6db421dbf6674493b6e4ff1a8b3e9df0/`（已清理）。画面和字幕中的“上场”统一改为“尝试”。结尾仍按原字号、位置和两段揭示，唯一结语为“多尝试，提高成功概率”，没有新增说明或标签。
 - `m2v prepare`、完整渲染、`m2v qa` 通过。技术 QA 的冻结帧、画面、字幕对比度、响度、音画同步和声明检查通过。TypeScript `tsc --noEmit` 与直接相关的两个 pytest 节点通过；分镜与场景源码搜索未见旧用词，Git 空白检查通过。未运行全仓回归。
-- 七个 G4 检查点的自动检查均通过；G3 自动时序检查通过。G5 全片逐秒接触表和原生帧检查已登记。新成片的[独立终审观察及最终差异复核](outputs/production/copy-final-blind-observations.md)确认 1→3→9 与两因素关系可见、改字场景在手机宽度有稳定读窗、“再提高单次概率”的强调和遮挡检查通过、片尾约 38.97–41 秒完整留读。其评审基于解码帧，未实时播放或听音；37.43–38.2 秒的短暂残字在连续播放中的观感仍待核。
-- 本轮首次[核心独立盲审](outputs/production/copy-core-blind-observations.md)指出结尾因素接力不清，失败报告已导入制作记录并留下未关闭的必改项。后续尝试及[最终盲审](outputs/production/copy-final-blind-observations.md)认为全片的因素分离可见，但孤立阅读结尾仍可能把“多尝试”误解为提高单次概率的原因。用户明确要求片尾只保留指定原句且不加说明，因此当前保留该语义风险，不把独立核心问题标记为通过。G4 制作门及 G5 受其阻断；G6 技术报告通过，但不等于制作完成。
+- 七个 G4 检查点的自动检查均通过；G3 自动时序检查通过。G5 全片逐秒接触表和原生帧检查已登记。新成片的独立终审观察及最终差异复核见 `outputs/production/copy-final-blind-observations.md`。复核确认 1→3→9 与两因素关系可见、改字场景在手机宽度有稳定读窗、“再提高单次概率”的强调和遮挡检查通过、片尾约 38.97–41 秒完整留读。其评审基于解码帧，未实时播放或听音；37.43–38.2 秒的短暂残字在连续播放中的观感仍待核。
+- 本轮首次核心独立盲审（`outputs/production/copy-core-blind-observations.md`）指出结尾因素接力不清，失败报告已导入制作记录并留下未关闭的必改项。后续尝试及最终盲审（`outputs/production/copy-final-blind-observations.md`）认为全片的因素分离可见，但孤立阅读结尾仍可能把“多尝试”误解为提高单次概率的原因。用户明确要求片尾只保留指定原句且不加说明，因此当前保留该语义风险，不把独立核心问题标记为通过。G4 制作门及 G5 受其阻断；G6 技术报告通过，但不等于制作完成。
 
 ## 本轮代码复核
 
@@ -27,8 +27,8 @@
 ## 本轮修改与实际复核
 
 - 三柱场的球沿同一地面两次起跳；飞行镜头固定，球心离散光点与同一轨迹同步。落地帧触发接触音、形变、近地闪释、目标条件和数字，随后柱体从共同零基准长高。1、3、9 的稳定柱高比为 1:3:9，三段颜色从米白经香槟金到琥珀金。
-- 修改前 41 秒候选当时保存在 `outputs/baselines/0661f8bab0684874a9ac9029c83d0abd/`（已清理）。首次新候选的独立终审发现 22.17–23.0 秒及 24.13–25.0 秒新条件提前、旧结果仍在，原始[失败观察](outputs/production/grounded-final-blind-observations.md)与候选基线 `outputs/baselines/e0604b19f94c4ecfb4c8b83993f3ac25/`（已清理） 均保留。
-- 修复后局部第 89/90 帧由旧结果转为“30次·10%”与 3，第 149/150 帧由旧条件转为“30次·30%”与 9。三柱 G4 的逐帧量测通过；全新[核心盲审](outputs/production/grounded-core-recheck-observations.md)的理解、表现、代表性均通过。完整新片的[独立终审](outputs/production/grounded-final-recheck-observations.md)七场均通过；原终审问题以当前同范围独立复查报告关闭。
+- 修改前 41 秒候选当时保存在 `outputs/baselines/0661f8bab0684874a9ac9029c83d0abd/`（已清理）。首次新候选的独立终审发现 22.17–23.0 秒及 24.13–25.0 秒新条件提前、旧结果仍在。原始失败观察记录在 `outputs/production/grounded-final-blind-observations.md`，候选基线 `outputs/baselines/e0604b19f94c4ecfb4c8b83993f3ac25/` 已清理，媒体不可复核。
+- 修复后局部第 89/90 帧由旧结果转为“30次·10%”与 3，第 149/150 帧由旧条件转为“30次·30%”与 9。三柱 G4 的逐帧量测通过；全新核心盲审（`outputs/production/grounded-core-recheck-observations.md`）的理解、表现、代表性均通过。完整新片的独立终审（`outputs/production/grounded-final-recheck-observations.md`）七场均通过；原终审问题以当前同范围独立复查报告关闭。
 - 全片 G5 接触表与七段过程视频复核了顺序、跨场衔接、三柱原问题和唯一结语。G6 当前候选技术 QA 的冻结帧、字幕对比、响度、音画时长与声明检查通过；技术结论不替代观看判断。
 
 ## 验证范围与边界

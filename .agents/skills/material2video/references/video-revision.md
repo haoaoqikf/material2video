@@ -53,7 +53,7 @@ uv run m2v qa --project videos/<类型>/<slug>
 uv run m2v status --project videos/<类型>/<slug> --history
 ```
 
-录制区间、配音和其他缓存按实际依赖与命中结果复用，不保证仅重新渲染某个场景。命令与交付细则见[命令](../../../../README.md#命令)和[交付与溯源](delivery-and-provenance.md)。
+录制区间、配音和其他缓存按实际依赖与命中结果复用，不保证仅重新渲染某个场景。命令与交付细则见[命令与维护](../../../../docs/reference/project-model.md#命令与维护)和[交付与溯源](delivery-and-provenance.md)。
 
 ## 修订交付
 
