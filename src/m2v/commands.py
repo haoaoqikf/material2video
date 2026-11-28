@@ -1,8 +1,6 @@
 """``m2v`` 各子命令的实现。
 
-解析与错误映射留在 :mod:`m2v.cli`，这里只负责「拿到已解析的参数，把命令做掉」：
-每个分支自己加载作品、取类型适配器并打印结果。分开的理由不是分层好看，而是
-`main()` 过去有 173 行、把分发与十来个命令的实现混在一起，改一个命令要读完所有命令。
+解析与错误映射由 :mod:`m2v.cli` 负责。命令加载作品并使用统一的本地执行适配器。
 """
 from __future__ import annotations
 
@@ -15,7 +13,7 @@ from m2v.core.delivery import outputs as delivery_outputs, read_record
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_current_prepared, load_project
 from m2v.core.workspace import CONTENT_ROOT_ENV
-from m2v.type_system import catalog, registry
+from m2v.type_system.catalog import catalog
 
 
 def dispatch(args) -> int:
@@ -30,13 +28,10 @@ def dispatch(args) -> int:
         from m2v.production.cli import dispatch as production_dispatch
         return production_dispatch(args)
     if args.command == "types":
-        listing = []
-        for item in registry.all_types():
-            listing.append({
-                "type": item.name,
-                "description": registry.describe(item.name),
-                "defaultStyle": catalog.catalog().get(item.name).default_style,
-            })
+        listing = [
+            {"type": entry.name, "description": entry.description, "defaultStyle": entry.default_style}
+            for entry in sorted(catalog().entries(), key=lambda entry: entry.name)
+        ]
         print(json.dumps(listing, ensure_ascii=False, indent=2))
         return 0
     if args.command == "author":
@@ -135,8 +130,10 @@ def dispatch(args) -> int:
 
 
 def _init(args) -> int:
-    item = registry.get(args.type)
-    entry = catalog.catalog().get(item.name)
+    directory = catalog()
+    if not directory.has(args.type):
+        raise M2VError(f"未知视频类型：{args.type}；运行 m2v types 查看可用类型")
+    entry = directory.get(args.type)
     project_dir = Path(args.project).expanduser()
     content_root = args.content_root or os.environ.get(CONTENT_ROOT_ENV)
     workspace = Path(content_root).expanduser().resolve() if content_root else Path(__file__).resolve().parents[2]
@@ -146,23 +143,24 @@ def _init(args) -> int:
             project_dir = workspace / "videos" / Path(*standard) / project_dir
         else:
             project_dir = workspace / project_dir
-    path = create_project(project_dir, item.name, entry.material_map(), output=entry.initial_dimensions())
-    print(f"已创建 {item.name} 作品：{path}")
+    path = create_project(project_dir, entry.name, entry.material_map(), output=entry.initial_dimensions())
+    print(f"已创建 {entry.name} 作品：{path}")
     return 0
 
 
 def _project_command(args) -> int:
-    """作品级命令：validate / prepare / status / preview / render / review*。"""
+    """执行作品校验、准备、状态查询、预览或导出。"""
+    from m2v.types.scene_film import adapter
+
     root, manifest = load_project(args.project)
-    video_type = registry.get(manifest["type"])
     if args.command == "validate":
-        video_type.validate(root, manifest)
+        adapter.validate(root, manifest)
         print("材料校验通过")
         return 0
     if args.command == "prepare":
-        video_type.validate(root, manifest)
-        video_type.prepare(root, manifest, voice=args.voice, rate=args.rate,
-                           rhythm=_rhythm_option(args), backend=getattr(args, "backend", None))
+        adapter.validate(root, manifest)
+        adapter.prepare(root, manifest, voice=args.voice, rate=args.rate,
+                        rhythm=_rhythm_option(args), backend=getattr(args, "backend", None))
         print(f"已生成准备产物：{root / 'outputs' / 'prepared.json'}")
         _report_reading_pace(root)
         return 0
@@ -173,17 +171,13 @@ def _project_command(args) -> int:
         jobs = getattr(args, "jobs", 2)
         if type(jobs) is not int or not 1 <= jobs <= 4:
             raise M2VError("--jobs 必须为 1～4 的整数")
-        if jobs > 1 and not video_type.supports_render_jobs:
-            raise M2VError(f"当前类型 {manifest['type']} 不支持 --jobs > 1")
-        render_options = {"jobs": jobs} if jobs > 1 and video_type.supports_render_jobs else {}
         from m2v.production.video_storage import reclaim_recordings
 
         reclaim_recordings(root)
         if args.command == "render":
-            _require_render_input(video_type, root, manifest)
             _production_render_event(root, manifest, 'render-request')
             try:
-                output = video_type.render(root, manifest, **render_options)
+                output = adapter.render(root, manifest, jobs=jobs)
             except Exception:
                 _production_render_event(root, manifest, 'render-failed')
                 raise
@@ -202,8 +196,8 @@ def _project_command(args) -> int:
             else:
                 print("旧视频及可再生产物已清理")
         else:
-            output = video_type.preview(root, manifest, limit_frames=args.limit_frames,
-                start_seconds=args.start_seconds, end_seconds=args.end_seconds, **render_options)
+            output = adapter.preview(root, manifest, limit_frames=args.limit_frames,
+                                     start_seconds=args.start_seconds, end_seconds=args.end_seconds, jobs=jobs)
             if not output.is_file():
                 raise M2VError(f"片段检查没有生成视频：{output}")
             print("片段检查完成，不作为全片生成的前置条件")
@@ -333,12 +327,11 @@ def _prepared(root: Path, manifest: dict) -> dict:
     if not (root / '.venv').is_dir():
         # 只读状态查询不得触发本地环境创建；环境缺失时如实报告未就绪。
         raise M2VError('作品本地环境未安装；请先按作品说明执行 setup')
-    check = registry.get(manifest["type"]).prepared_check
-    return check(root, manifest) if check else load_current_prepared(root, manifest)
+    from m2v.standalone import executor
+    return executor.current(root, manifest)
 
 
 def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
-    registry.get(manifest["type"])
     from m2v.production import ledger
     with ledger.query():
         return _status_in_query(root, manifest, full_history=full_history)
@@ -369,8 +362,3 @@ def _status_in_query(root: Path, manifest: dict, *, full_history: bool) -> dict:
     from m2v.production.readiness import summary
     result['summary'] = summary(result)
     return result
-
-
-def _require_render_input(video_type, root: Path, manifest: dict) -> None:
-    if video_type.pre_render_check is not None:
-        video_type.pre_render_check(root, manifest)

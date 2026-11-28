@@ -1,8 +1,6 @@
 """Unified ``m2v`` command line entry point.
 
-这里只做三件事：UTF-8 输出、内置类型注册、参数解析与错误到退出码的映射。各命令的
-实现见 :mod:`m2v.commands`；两者分开是因为命令实现各自加载作品、取适配器并打印结果，
-与「解析 + 分发」是两件独立的事。
+负责 UTF-8 输出、参数解析和退出码映射。命令实现在 :mod:`m2v.commands`。
 """
 from __future__ import annotations
 
@@ -11,8 +9,6 @@ import sys
 
 from m2v import commands
 from m2v.core.errors import M2VError
-from m2v.type_system import registry
-from m2v.type_system import catalog
 
 
 def _force_utf8_output() -> None:
@@ -23,14 +19,6 @@ def _force_utf8_output() -> None:
                 configure(encoding="utf-8")
             except (ValueError, OSError):
                 pass
-
-
-def _register_builtins() -> None:
-    if registry.all_types():
-        return
-    from m2v.types.scene_film.adapter import make_type
-    for name in catalog.catalog().names():
-        registry.register(make_type(name))
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -136,7 +124,6 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     _force_utf8_output()
-    _register_builtins()
     args = _parser().parse_args(argv)
     try:
         return commands.dispatch(args)

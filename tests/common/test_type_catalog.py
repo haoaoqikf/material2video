@@ -5,15 +5,18 @@ import json
 
 import pytest
 
-from m2v.cli import _register_builtins
+from m2v.cli import main
 from m2v.core.errors import M2VError
-from m2v.type_system import catalog as directory, registry
+from m2v.type_system import catalog as directory
 
 
-def test_catalog_matches_registry_and_has_no_category():
-    _register_builtins()
+def test_types_lists_catalog_entries_and_has_no_category(capsys):
     entries = directory.catalog().entries()
-    assert {entry.name for entry in entries} == {item.name for item in registry.all_types()}
+    assert main(["types"]) == 0
+    assert json.loads(capsys.readouterr().out) == [
+        {"type": entry.name, "description": entry.description, "defaultStyle": entry.default_style}
+        for entry in sorted(entries, key=lambda entry: entry.name)
+    ]
     assert all(entry.workspace_parts() == (entry.name,) for entry in entries)
     assert all(entry.material_map() == {"storyboard": "storyboard.json"} for entry in entries)
 

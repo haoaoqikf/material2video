@@ -22,6 +22,16 @@ pnpm run render
 
 《复利 40 年》还需安装 `qwen3-tts` 可选依赖，在 `setup` 前恢复本地音色，按[该例 README](data-evolution/compound-after-20/README.md)执行。字体由各作品的 `uv run python fonts/fetch.py` 恢复，已有文件摘要不一致时拒绝覆盖。主项目入口可委托同一本地实现，例如 `uv run m2v render --project examples/spatial-3d/solar-system-journey`。
 
+## 维护示例的运行时
+
+公共实现先改[独立工程模板](../templates/standalone/runtime/python/film_runtime/)。更新某部示例时，逐个比较受影响的同路径文件，再把需要的修复同步到作品副本。模板与示例内容相同的文件可直接同步。已有差异的文件应逐段合并，按实际使用范围重跑该例的检查。每个副本继续携带自己的运行源码、资源恢复入口和依赖锁。
+
+| 示例 | 同步时需核对的差异（忽略换行符） |
+|---|---|
+| 复利 40 年 | `types/scene_film/code_scenes/capture.py` 为路径追踪场景设置了更长的浏览器导航超时。 |
+| 全球市值前十 | `types/scene_film/explainer_render.py` 有竖屏网页直录快路径，`engine/assets_audit.py` 也有文本差异。 |
+| 太阳系之旅 | `cli.py`、`core/assets.py`、`core/fonts.py`、`engine/` 下的音频、节奏、字幕和 TTS，以及 `types/scene_film/explainer.py`、`explainer_prepare.py` 带有本地实现差异。该例的旁白路径只携带自身使用的后端，未携带 Kokoro 与 Qwen3-TTS 模块。 |
+
 ## 深入研究与试制演练
 
 以下是三部示例在[研究与试制](../.agents/skills/material2video/references/stage-research.md)中的操作演练。具体方法见[标杆选择与深入拆解](../.agents/skills/material2video/references/reference-video-analysis.md)。

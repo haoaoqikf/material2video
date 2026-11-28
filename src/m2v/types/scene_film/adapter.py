@@ -5,7 +5,6 @@ import json
 from m2v.core.errors import M2VError
 from m2v.core.preview import window
 from m2v.engine.output_validation import verify_output
-from m2v.type_system.registry import VideoType
 from m2v.standalone import executor
 
 
@@ -77,8 +76,3 @@ def render(root: Path, project: dict, *, jobs=1) -> Path:
             or executor.local_artifact(root, record.get('destination')) != executor.local_artifact(root, result['path'])):
         raise M2VError('完整导出结果与当前已交付候选不符')
     return _verify(root, project, result, prepared, 0, prepared['durationInFrames'])
-
-
-def make_type(name: str) -> VideoType:
-    return VideoType(name, validate, prepare, preview, render,
-                     prepared_check=executor.current, supports_render_jobs=True)
