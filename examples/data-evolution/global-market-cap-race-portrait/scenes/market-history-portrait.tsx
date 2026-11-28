@@ -9,6 +9,7 @@ type TextPose = [x: number, y: number, size: number, weight: number, right: numb
 type Pose = [rank: TextPose, name: TextPose, amount: TextPose];
 
 const lineHeight = 29.4;
+const cardNameTop = 185;
 const hero: Pose = [[29, 127, 12, 560, 0], [29, 153, 48, 740, 0], [29, 207, 82, 630, 0]];
 const fields = ['rank', 'name', 'cap'] as const;
 
@@ -22,7 +23,7 @@ function cardPose(row: StageRow, index: number, count: number): Pose {
   const x = 29 + index * (width + 11) + (count === 2 ? 14 : 10);
   const nameWidth = Array.from(row.name).reduce((total, c) => total + (c.charCodeAt(0) > 255 ? 1 : .64), 0);
   const nameSize = Math.min(count === 2 ? 30 : 24, (width - 23) / nameWidth);
-  return [[x, 161, 11, 600, 0], [x, 185, nameSize, 720, 0], [x, 228, count === 2 ? 44 : 34, 650, 0]];
+  return [[x, 161, 11, 600, 0], [x, cardNameTop, nameSize, 720, 0], [x, 228, count === 2 ? 44 : 34, 650, 0]];
 }
 
 function blend(from: Pose, to: Pose, progress: number): Pose {
@@ -45,10 +46,10 @@ function incoming(row: StageRow, card: Pose, progress: number): Pose {
   return pose;
 }
 
-function StagePerson({row, pose}: {row: StageRow; pose: Pose}) {
+function StagePerson({row, pose, travelling}: {row: StageRow; pose: Pose; travelling: boolean}) {
   const rank = String(row.rank + 1).padStart(2, '0');
   const text = [row.rank === 0 && pose[2][2] >= 74 ? '01　全球第一' : rank, row.name, row.value.toFixed(3)];
-  return <div className="stage-person" data-company={row.id} data-rank={row.rank + 1} data-lead={row.rank === 0}>
+  return <div className="stage-person" data-company={row.id} data-rank={row.rank + 1} data-lead={row.rank === 0} data-travelling={travelling}>
     {pose.map(([left, top, fontSize, fontWeight, right], index) => <span key={fields[index]}
       className={'person-' + fields[index]} data-copy={fields[index]}
       style={{left, top, fontSize, fontWeight, transform: 'translateX(' + (-right * 100) + '%)'}}>{text[index]}</span>)}
@@ -120,7 +121,11 @@ export default function MarketHistoryPortrait({width, height, props}: CodeSceneP
       <header><h1>全球市值前十</h1><time>{year}.{month}</time></header>
       <p className="stage-metric">市值 · 万亿美元</p>
       {cards.length > 0 && <div className="stage-cards" aria-hidden="true" style={columns}>
-        {cards.map(row => <div className="stage-card" key={row.id} data-lead={row.rank === 0} />)}
+        {cards.map(row => {
+          const pose = active.get(row.id);
+          const opacity = pose ? 1 - ramp(Math.abs(pose[1][1] - cardNameTop), 10, 62) : 0;
+          return <div className="stage-card" key={row.id} data-lead={row.rank === 0} style={{opacity}} />;
+        })}
       </div>}
       <p className="hero-unit" style={{opacity: heroLight}}>万亿美元</p>
       <section className="stage-board" aria-label="其余榜单">
@@ -133,7 +138,7 @@ export default function MarketHistoryPortrait({width, height, props}: CodeSceneP
       </section>
       {rows.map(row => {
         const pose = active.get(row.id);
-        return pose && <StagePerson key={row.id} row={row} pose={pose} />;
+        return pose && <StagePerson key={row.id} row={row} pose={pose} travelling={Boolean(handoff?.rowPath && pose[1][1] > cardNameTop)} />;
       })}
     </div>
   </main>;

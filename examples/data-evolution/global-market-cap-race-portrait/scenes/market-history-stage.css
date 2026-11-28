@@ -98,6 +98,10 @@
 .release-stage .person-rank {color: #b0bfd6; letter-spacing: .065em}
 .release-stage .person-name {letter-spacing: -.045em; text-shadow: 0 3px 8px #090d17b8}
 .release-stage .person-cap {color: #f0f4fd; letter-spacing: -.055em; text-shadow: 0 2px 8px #090d17a0}
+.release-stage .stage-person[data-travelling="true"] > span {
+  paint-order: stroke fill;
+  -webkit-text-stroke: .16em #121724;
+}
 .release-stage [data-lead="true"] > .person-rank,
 .release-stage [data-lead="true"] > .person-cap {color: #f7faff}
 .release-stage .hero-unit {
