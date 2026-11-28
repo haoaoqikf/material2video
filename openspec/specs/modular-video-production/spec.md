@@ -99,11 +99,12 @@ README、Skill 与项目规划中描述视频类型的清单 MUST 由类型目�
 - **THEN** 与成片同等修复，无需人工处理即可打开
 
 ### Requirement: 新版创作辅助命令
-系统 MUST 提供 `m2v author` 的输入审查、候选稿、媒体及声音操作，以及 `m2v data financial-plan` 的金融计划编排；MUST 拒绝 `m2v general`、`m2v financial`、`m2v styles`、`m2v migrate` 和 `m2v relocate`。
+
+系统 MUST 提供 `m2v author` 的输入审查、候选稿及媒体操作，以及 `m2v data financial-plan` 的金融计划编排。系统 MUST 拒绝 `m2v author sounds`、`m2v general`、`m2v financial`、`m2v styles`、`m2v migrate` 和 `m2v relocate`。
 
 #### Scenario: 旧命令
 - **WHEN** 运行任一已移除命令
-- **THEN** 参数解析失败，且不修改作品
+- **THEN** 参数解析失败，且不修改作品。
 
 ### Requirement: 准备及评审版本绑定（当前媒体流程）
 
