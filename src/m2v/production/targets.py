@@ -112,11 +112,17 @@ def register(root: Path, project: dict, request: dict) -> dict:
             from m2v.core.style_binding import load_binding
             affected = changed_scenes or {scene for scenes in new_targets.values() for scene in scenes}
             changes = load_binding(root, project)['overrides']
-            authorized = [change['scope']['scenes'] for change in changes
-                          if change['authorization']['quote'] == request['instruction']]
-            if 'all' not in authorized and not affected.issubset({s for group in authorized for s in group}):
-                raise M2VError('风格改靶须能追溯到全部受影响场景的已登记用户授权')
-        elif all(current[key] == new_scope[key] for key in ('references', 'conditions')):
+            # 旧报告首次补上无覆盖的类型默认时，原实物参考仍是同一目标。
+            # 此时用户可以只改观察条件，登记和随后的独立复查照常执行。
+            first_default = ('styleDigest' not in current and not changes and current['references']
+                             and current['references'] == new_scope['references'])
+            if not first_default:
+                authorized = [change['scope']['scenes'] for change in changes
+                              if change['authorization']['quote'] == request['instruction']]
+                if 'all' not in authorized and not affected.issubset({s for group in authorized for s in group}):
+                    raise M2VError('风格改靶须能追溯到全部受影响场景的已登记用户授权')
+                continue
+        if all(current[key] == new_scope[key] for key in ('references', 'conditions')):
             raise M2VError('目标未改变，无需登记替代')
     identity = uuid.uuid4().hex
     value = dict(version=VERSION, id=identity, cycleId=ledger.cycle(root)['cycleId'],

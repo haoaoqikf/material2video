@@ -115,3 +115,37 @@ def test_retarget_requires_authorization_for_every_changed_scene(work):
         override['authorization']['quote'] = quote
     write(root/style.BINDING, binding)
     assert targets.register(root, project, replacement(quote))['issuesClosed'] is False
+
+
+@pytest.mark.parametrize('swap_reference', [False, True])
+def test_first_default_allows_user_condition_change_only_with_original_reference(work, monkeypatch, swap_reference):
+    from m2v.production import targets
+
+    root, project = work
+    original = {**request(), 'references': ['one.png'], 'conditions': ['底部显示单位']}
+    # 用真实画面作为旧资料，保留历史凭据缺少默认绑定这一处版本差异。
+    base = outputs(root)
+    image = base / request()['items'][0]['path']
+    (base / 'one.png').write_bytes(image.read_bytes())
+    (base / 'two.png').write_bytes(image.read_bytes())
+    original_pack = reviews.package(root, project, original)
+    failed = reviews.import_report(root, project, report(work, original_pack, verdict='fail'))
+    effective = targets.effective_scope
+
+    def legacy_scope(root, item):
+        scope, index = effective(root, item)
+        for key in ('styleTargets', 'styleDigest'):
+            scope.pop(key, None)
+        return scope, index
+
+    monkeypatch.setattr(targets, 'effective_scope', legacy_scope)
+    new = {**original, 'conditions': ['单位紧邻日期'],
+           'references': ['two.png'] if swap_reference else original['references']}
+    pack = reviews.package(root, project, new)
+    change = dict(version=1, source='user', instruction='单位移到日期旁', reportIds=[failed['id']],
+                  packPath=(pack/'manifest.json').relative_to(base).as_posix(), packSha256=digest(pack/'manifest.json'))
+    if swap_reference:
+        with pytest.raises(M2VError, match='已登记用户授权'):
+            targets.register(root, project, change)
+    else:
+        assert targets.register(root, project, change)['issuesClosed'] is False
