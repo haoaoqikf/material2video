@@ -227,8 +227,12 @@ def covers(original, current):
     conditions = ("focus", "purpose", "reviewMode", "fps", "displaySizes", "references", "conditions")
     if any(original[key] != current[key] for key in conditions):
         return False
-    if original.get("styleDigest") != current.get("styleDigest") or original.get("film") != current.get("film"):
+    if original.get("film") != current.get("film"):
         return False
+    if original.get("styleDigest") != current.get("styleDigest"):
+        # 首次绑定可给原实物参考增加当前默认对照。原参考、条件和范围仍须逐项相符。
+        if "styleDigest" in original or not original["references"] or not current.get("styleDigest"):
+            return False
     for item, scenes in original.get("styleTargets", {}).items():
         observed = current.get("styleTargets", {}).get(item, {})
         if any(scene not in observed or not set(refs).issubset(observed[scene])

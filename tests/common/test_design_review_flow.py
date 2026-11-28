@@ -129,6 +129,20 @@ def test_final_is_retired_and_process_recheck_preserves_fps(work):
     assert not issues.covers(scope, {**scope, 'fps': 60})
 
 
+def test_first_style_binding_preserves_original_observed_reference():
+    previous = {'focus': 'comprehensive', 'purpose': 'process', 'reviewMode': 'process',
+                'fps': 30, 'displaySizes': [393, 1080], 'references': [{'path': 'refs/target.mp4', 'sha256': 'a' * 64}],
+                'conditions': ['保持同一交易日'], 'sources': [], 'sceneIds': [], 'film': True,
+                'items': [{'id': 'handoff', 'window': [10, 50], 'dynamic': True}]}
+    current = {**previous, 'styleDigest': 'b' * 64, 'styleTargets': {'handoff': {'scene': ['evidence']}}}
+    assert issues.covers(previous, current)
+    assert not issues.covers(current, previous)
+    assert not issues.covers(current, {**current, 'styleDigest': 'c' * 64})
+    assert not issues.covers(previous, {**current, 'references': []})
+    assert not issues.covers(previous, {**current, 'conditions': []})
+    assert not issues.covers({**previous, 'references': []}, {**current, 'references': []})
+
+
 def test_cli_builds_sample_task_and_derives_comparison_without_request_copy(native, capsys):
     import json
     from m2v import cli
