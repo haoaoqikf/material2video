@@ -1,4 +1,4 @@
-import {memo, useMemo, useRef} from 'react';
+import {memo, useEffect, useMemo, useRef} from 'react';
 import * as THREE from 'three';
 import {Corona, OortCloud, ParticleBelt} from '../src/code-scene/cinematic/space';
 import {useFrame, useThree} from '@react-three/fiber';
@@ -69,6 +69,30 @@ function FlightCamera({shots, windows, frame, look, ceresFocus}: {
   return null;
 }
 
+/** 尾镜放大光晕的可见范围，太阳模型仍使用旅程里的同一半径。 */
+function DistantSunGlow({strength}: {strength: number}) {
+  const glow = useMemo(() => {
+    const size = 32;
+    const pixels = new Uint8Array(size * size * 4).fill(255);
+    for (let y = 0; y < size; y += 1) {
+      for (let x = 0; x < size; x += 1) {
+        const distance = Math.hypot(x + 0.5 - size / 2, y + 0.5 - size / 2) / (size / 2);
+        const alpha = Math.max(0, 1 - distance) ** 2;
+        pixels[(y * size + x) * 4 + 3] = Math.round(alpha * 255);
+      }
+    }
+    const texture = new THREE.DataTexture(pixels, size, size);
+    texture.magFilter = THREE.LinearFilter;
+    texture.needsUpdate = true;
+    return texture;
+  }, []);
+  useEffect(() => () => glow.dispose(), [glow]);
+  return <sprite scale={[24, 24, 1]} visible={strength > 0}>
+    <spriteMaterial map={glow} color="#ffd08b" transparent opacity={strength}
+      depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false}/>
+  </sprite>;
+}
+
 function World({textures, active, seconds, outerView, edgeApproach, ceresFocus}: {
   textures: Textures; active: string; seconds: number; outerView: number; edgeApproach: number;
   ceresFocus: number;
@@ -79,6 +103,7 @@ function World({textures, active, seconds, outerView, edgeApproach, ceresFocus}:
     <group>
       <Planet id="sun" radius={LAYOUT.sun.radius} textures={textures} clock={clock}/>
       <Corona radius={LAYOUT.sun.radius} color="#ff9a3c" intensity={0.85} power={3.1}/>
+      <DistantSunGlow strength={outerView}/>
     </group>
     {Object.entries(LAYOUT).filter(([id]) => id !== 'sun').map(([id, item]) => <group key={id}>
       {item.orbit > 0 && !item.parent &&
@@ -95,7 +120,7 @@ function World({textures, active, seconds, outerView, edgeApproach, ceresFocus}:
       color="#c5bba1" size={0.065} spin={0.002} opacity={0.65}/>
     <ParticleBelt count={1800} {...structures.kuiper} seed="kuiper"
       color={outerView === 0 ? '#9fb6cf' : new THREE.Color('#9fb6cf').lerp(new THREE.Color('#f1d5ab'), outerView).getStyle()}
-      size={THREE.MathUtils.lerp(0.11, 6, outerView) + 2.2 * edgeApproach} spin={0.001}
+      size={THREE.MathUtils.lerp(0.11, 5.1, outerView) + 2.2 * edgeApproach} spin={0.001}
       opacity={THREE.MathUtils.lerp(0.6, 0.92, outerView)}/>
     <OortCloud count={7200} {...structures.oort} seed="oort" color={BODIES.oort.color} size={6.6}
       bubble={structures.heliopause.radius} bubbleColor={BODIES.heliopause.color}
