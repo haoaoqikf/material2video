@@ -27,7 +27,9 @@ export default function Journey(config: CodeSceneProps) {
   const chapterIndex = Math.max(0, CHAPTER_IDS.indexOf(CHAPTER_OF[active] ?? 'sun'));
   const firstStart = Math.min(...Object.values(config.segmentWindows).map(window => window.startFrame));
   const window = shot?.segment ? config.segmentWindows[shot.segment] : undefined;
-  const panel = labelOpacity(shot, frame, window?.startFrame ?? Infinity);
+  // 日球层顶刚离开时边缘还在视野外，等回望能看到壳缘，再出现其名称。
+  const titleStart = window ? window.startFrame + (active === 'heliopause' ? 120 : 0) : Infinity;
+  const panel = labelOpacity(shot, frame, titleStart);
   const outer = active === 'heliopause' || active === 'oort';
   const track = clamp(frame / Math.max(1, config.durationInFrames - 1));
   const opening = frame < firstStart;
@@ -50,6 +52,9 @@ export default function Journey(config: CodeSceneProps) {
     </div>
     <div style={{position: 'absolute', left: 0, right: 0, top: 0, height: 140,
       background: 'linear-gradient(180deg, rgba(2,5,10,0.76), transparent)'}}/>
+    {active === 'ceres' && <div style={{position: 'absolute', right: 0, top: 0, width: 340, height: 132,
+      opacity: clamp(panel * 1.8), background: 'linear-gradient(180deg, #02050a 46%, transparent)',
+      maskImage: 'linear-gradient(270deg, #000 54%, transparent)'}}/>}
     <div style={{position: 'absolute', left: 0, right: 0, top: safe.y - 70, bottom: 0,
       background: 'linear-gradient(180deg, transparent, rgba(2,5,10,0.82))'}}/>
     <div style={{position: 'absolute', left: 88, right: 88, top: 52, display: 'flex',
@@ -65,7 +70,9 @@ export default function Journey(config: CodeSceneProps) {
       opacity: panel, textShadow: '0 2px 24px #02050a'}}>
       <div style={{fontSize: 20, letterSpacing: '0.2em', color: '#bba887'}}>{body.english}</div>
       <div style={{fontSize: outer ? 64 : 82, fontWeight: 350, lineHeight: 1.3, marginTop: 16}}>{body.name}</div>
-      <div style={{width: 48, height: 1, background: '#cbb28b', marginTop: 22}}/>
+      <div style={{width: 48, height: outer ? 3 : 1, marginTop: 22,
+        background: active === 'heliopause' ? body.color : active === 'oort'
+          ? `repeating-linear-gradient(90deg, ${body.color} 0 4px, transparent 4px 9px)` : '#cbb28b'}}/>
       <div style={{fontSize: outer ? 34 : 36, lineHeight: 1.65, marginTop: 22, color: '#dfd8cc'}}>
         {body.feature}
       </div>

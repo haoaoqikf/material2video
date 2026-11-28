@@ -259,8 +259,8 @@ const FEATURE_NORMAL: Record<string, [number, number, number]> = {
   pluto: [0.966, 0.037, 0.259],
 };
 
-export function Planet({id, textures, clock, radius = 2.35, detail = true, faceFeature = false}: {
-  id: string; textures: Textures; clock: TimeSource; radius?: number; detail?: boolean;
+export function Planet({id, textures, clock, radius = 2.35, detail = true, faceFeature = false, ceresFocus = 0}: {
+  id: string; textures: Textures; clock: TimeSource; radius?: number; detail?: boolean; ceresFocus?: number;
   /** 展示性朝向：让该天体的纹理地标（大红斑/心形）在镜头里正对机位。 */
   faceFeature?: boolean;
 }) {
@@ -274,6 +274,7 @@ export function Planet({id, textures, clock, radius = 2.35, detail = true, faceF
   const saturnCenter = useMemo(() => positionOf('saturn'), []);
   const contextGain = useMemo(() => ({value: 1}), []);
   const jovian = id === 'jupiter' || body.parent === 'jupiter';
+  const ceres = id === 'ceres';
   const earthUniforms = useMemo<EarthUniforms>(() => ({
     uSunView: {value: new THREE.Vector3(1, 0, 0)},
     uClouds: {value: textures.clouds ?? null},
@@ -286,7 +287,9 @@ export function Planet({id, textures, clock, radius = 2.35, detail = true, faceF
     // 土星附近仅压低远处木星系的光量，保留同一世界的实际形体；平滑变化避免跳暗。
     const distance = camera.position.distanceTo(saturnCenter);
     const t = Math.max(0, Math.min(1, (distance - 20) / 18));
-    contextGain.value = jovian ? 0.4 + 0.6 * t * t * (3 - 2 * t) : 1;
+    contextGain.value = jovian
+      ? (0.4 + 0.6 * t * t * (3 - 2 * t)) * (1 - 0.72 * ceresFocus)
+      : ceresFocus;
     const rotation = clock.current.seconds * (id === 'venus' ? -0.018 : 0.026);
     if (sphere.current) {
       const feature = FEATURE_NORMAL[id];
@@ -320,13 +323,23 @@ export function Planet({id, textures, clock, radius = 2.35, detail = true, faceF
           // 程序覆盖后来天体的着色器改动。
           customProgramCacheKey={() => id === 'saturn' ? 'solar-sphere-ring-shadow-v5'
             : id === 'earth' ? 'solar-earth-cinematic-v3' : id === 'sun' ? 'solar-limb-v1'
-              : jovian ? `solar-jovian-depth-v1-${id}` : `solar-planet-v2-${id}`}
+              : jovian || ceres ? `solar-depth-v2-${id}` : `solar-planet-v2-${id}`}
           onBeforeCompile={shader => {
             if (jovian) {
               shader.uniforms.m2vContextGain = contextGain;
               shader.fragmentShader = shader.fragmentShader
                 .replace('#include <common>', '#include <common>\nuniform float m2vContextGain;')
                 .replace('#include <opaque_fragment>', 'outgoingLight *= m2vContextGain;\n#include <opaque_fragment>');
+            }
+            if (ceres) {
+              shader.uniforms.m2vContextGain = contextGain;
+              shader.fragmentShader = shader.fragmentShader
+                .replace('#include <common>', '#include <common>\nuniform float m2vContextGain;')
+                .replace('#include <opaque_fragment>', `
+                  // 轻微填光保留暗缘上的坑面，并让日照侧仍明显更亮。
+                  outgoingLight *= 1.0 + m2vContextGain * 0.8;
+                  outgoingLight += diffuseColor.rgb * (m2vContextGain * 0.12);
+                  #include <opaque_fragment>`);
             }
             if (id === 'saturn') saturnShadow(shader, radius, textures.rings);
             if (id === 'earth') earthSurface(shader, earthUniforms);

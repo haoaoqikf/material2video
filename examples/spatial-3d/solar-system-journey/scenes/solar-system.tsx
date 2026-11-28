@@ -42,8 +42,8 @@ const FEATURE_BODIES = new Set(['jupiter', 'pluto']);
 
 type Window = {startFrame: number; endFrame: number};
 
-function FlightCamera({shots, windows, frame, look}: {
-  shots: Shot[]; windows: Record<string, Window>; frame: number; look: Look}) {
+function FlightCamera({shots, windows, frame, look, ceresFocus}: {
+  shots: Shot[]; windows: Record<string, Window>; frame: number; look: Look; ceresFocus: number}) {
   const sample = useMemo(() => createFlight(shots, windows, focusTargets()), [shots, windows]);
   const clock = useRef(frame);
   clock.current = frame;
@@ -54,8 +54,11 @@ function FlightCamera({shots, windows, frame, look}: {
     // 后续材质钩子会把日光转入视空间，必须用本帧矩阵，不能依赖上一帧渲染的副作用。
     camera.updateMatrixWorld(true);
     const perspective = camera as THREE.PerspectiveCamera;
-    if (perspective.fov !== pose.fov) {
+    // 谷神星在名称右侧，背景土星从右缘离画，给右上角章节标签留出星空。
+    const filmOffset = -9 * ceresFocus;
+    if (perspective.fov !== pose.fov || perspective.filmOffset !== filmOffset) {
       perspective.fov = pose.fov;
+      perspective.filmOffset = filmOffset;
       perspective.updateProjectionMatrix();
     }
     // CameraRig 被替换后仍需应用 look 的曝光；镜头级曝光仅在显式声明时覆盖。
@@ -66,8 +69,8 @@ function FlightCamera({shots, windows, frame, look}: {
   return null;
 }
 
-function World({textures, active, seconds, outerView}: {
-  textures: Textures; active: string; seconds: number; outerView: number;
+function World({textures, active, seconds, outerView, ceresFocus}: {
+  textures: Textures; active: string; seconds: number; outerView: number; ceresFocus: number;
 }) {
   const clock = {current: {seconds}};
   const structures = journey.structures;
@@ -82,7 +85,7 @@ function World({textures, active, seconds, outerView}: {
       {item.parent && <group position={positionOf(item.parent)}>
         <OrbitRing radius={item.orbit} active={active === id}/></group>}
       <group position={positionOf(id)}>
-        <Planet id={id} radius={item.radius} textures={textures} clock={clock}
+        <Planet id={id} radius={item.radius} textures={textures} clock={clock} ceresFocus={ceresFocus}
           faceFeature={FEATURE_BODIES.has(id)}
           detail={id === active || BODIES[active]?.parent === id}/>
       </group>
@@ -93,8 +96,9 @@ function World({textures, active, seconds, outerView}: {
       color={outerView === 0 ? '#9fb6cf' : new THREE.Color('#9fb6cf').lerp(new THREE.Color('#f1d5ab'), outerView).getStyle()}
       size={THREE.MathUtils.lerp(0.11, 6, outerView)} spin={0.001}
       opacity={THREE.MathUtils.lerp(0.6, 0.92, outerView)}/>
-    <OortCloud count={7200} {...structures.oort} seed="oort" color="#c9d6df" size={5.2}
-      bubble={structures.heliopause.radius} bubbleColor="#5f97d8" bubbleOpacity={structures.heliopause.opacity}/>
+    <OortCloud count={7200} {...structures.oort} seed="oort" color={BODIES.oort.color} size={5.2}
+      bubble={structures.heliopause.radius} bubbleColor={BODIES.heliopause.color}
+      bubbleOpacity={structures.heliopause.opacity}/>
   </>;
 }
 
@@ -106,13 +110,17 @@ export const SolarSystem = memo(function SolarSystem({textures, shots, look, act
   onReady: () => void;
 }) {
   // 逐主体镜头使用稳定目标表，避免旧固定帧焦点切换随配音变化失效。
-  // 离开带区后逐渐增强同一组粒子的远景可见度，保留扁带与球壳各自的几何边界。
+  // 蓝色边界先随回望镜头进入画面，随后点亮同一组扁带粒子。
   const outerView = THREE.MathUtils.smoothstep(seconds * fps,
-    windows['kuiper-line'].endFrame, windows['oort-line'].startFrame);
+    windows['heliopause-line'].endFrame, windows['oort-line'].startFrame);
+  const {startFrame, endFrame} = windows['ceres-line'];
+  const frame = seconds * fps;
+  const ceresFocus = THREE.MathUtils.smoothstep(frame, startFrame - 30, startFrame + 15)
+    * (1 - THREE.MathUtils.smoothstep(frame, endFrame - 12, endFrame + 42));
   return <SpaceStage look={look} shots={shots} fov={40} background="#02050a"
     starCount={650} starSeed="solar-system">
-    <FlightCamera shots={shots} windows={windows} frame={seconds * fps} look={look}/>
-    <World textures={textures} active={active} seconds={seconds} outerView={outerView}/>
+    <FlightCamera shots={shots} windows={windows} frame={frame} look={look} ceresFocus={ceresFocus}/>
+    <World textures={textures} active={active} seconds={seconds} outerView={outerView} ceresFocus={ceresFocus}/>
     <FirstPaint textures={textures} onReady={onReady}/>
   </SpaceStage>;
 });
