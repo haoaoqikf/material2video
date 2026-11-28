@@ -174,15 +174,13 @@ Pixabay 是 `search` 唯一启用的 API 检索来源，凭据只从环境变量
 
 来源只有两类：**代码合成**与**第三方音频**。均先落盘到作品的 `assets/sound/<sha256>.wav`，来源登记在 `assets/sound-sources.json`，分镜用 ID 编排；渲染不联网、不随机挑音。音效目录不在画面服务器白名单内。
 
-独立工程 v3 将恢复配方保存为作品的 `assets/sound-recipe.json`，在作品目录执行 `uv run python scripts/video.py setup`，由随作品携带的本地运行时生成并登记；`prepare` 继续校验本地来源。下列共享 `author sounds` 命令用于共享工程材料，不能将其生成器身份记录直接当作 v3 本地运行时记录，也不要手改生成器身份绕过核验。
+将恢复配方保存为作品的 `assets/sound-recipe.json`，在作品目录执行下列命令。本地运行时生成或导入声音并登记来源，`prepare` 核验实际引用与摘要。
 
 ```powershell
-uv run m2v author sounds catalog
-uv run m2v author sounds import --project <目录> --manifest <音效清单.json> [--base <本地文件基准目录>]
-uv run m2v author sounds audit --project <目录>
+uv run --frozen python scripts/video.py setup
 ```
 
-`catalog` 输出名称、类别、描述、默认时长、循环能力及变体方式。当前有 `keyboard-key`、`keyboard-typing`、`mouse-click`、`switch`、`spark`、`electric-crackle`、`electric-hum`、`whoosh`、`impact-soft`、`impact-metal`、`success`、`warning`。这些是风格化合成拟音，不能标作真实录音；对真实材质要求高时选择第三方实录。
+合成音效有 `keyboard-key`、`keyboard-typing`、`mouse-click`、`switch`、`spark`、`electric-crackle`、`electric-hum`、`whoosh`、`impact-soft`、`impact-metal`、`success`、`warning`。它们属于风格化拟音。需要真实材质时选择第三方实录。
 
 导入清单 `schemaVersion: 1`，`assets` 为1～300项，音效库总数最多300项。每项 `id` 为1～80位字母、数字、下划线或连字符；`synthesis`、`localPath`、`mediaUrl` 三选一：
 
@@ -197,7 +195,7 @@ uv run m2v author sounds audit --project <目录>
 }
 ```
 
-上面的第三方条目是格式示意，须替换为实际文件和核验过的来源许可。`localPath` 相对清单目录或 `--base` 解析，允许从作品外导入；`mediaUrl` 仅接受 HTTP(S) 音频直链，不解析网页。第三方必须提供明确 `author`、`license` 和 HTTP(S) `sourceUrl`，未知值拒绝；不能将下载成功当作已获许可。当前没有第三方音效搜索 API，助手检索候选后填写清单。导入保留原文件摘要、来源和许可，将音频完整解码为PCM16、24kHz、立体声WAV；单文件输入最多256MiB，时长大于0且最多600秒。损坏／截断文件拒绝，一批全部通过才发布；失败不更新已有记录或已有文件。
+上面的第三方条目是格式示意，须替换为实际文件和核验过的来源许可。`localPath` 相对配方所在的 `assets/` 解析。`mediaUrl` 仅接受 HTTP(S) 音频直链。第三方必须提供明确 `author`、`license` 和 HTTP(S) `sourceUrl`，未知值拒绝；不能将下载成功当作已获许可。当前没有第三方音效搜索 API，助手检索候选后填写清单。导入保留原文件摘要、来源和许可，将音频完整解码为PCM16、24kHz、立体声WAV；单文件输入最多256MiB，时长大于0且最多600秒。损坏／截断文件拒绝，一批全部通过才发布；失败不更新已有记录或已有文件。
 
 合成配方记录生成器版本和规范化参数，输出按CC0-1.0使用。同版本、同配方可复现。参数：`name` 必填；`seed` 为0～4294967295整数，默认0；`durationMs` 为30～30000整数，默认取目录；`intensity` 为0.05～1，默认0.7；`rate` 为1～20，默认7，只影响自动连续打字的平均每秒击键数。`eventsMs` 仅用于连续打字，为1～600个严格递增且落在音效时长内的整数毫秒，显式提供时替代随机间隔。`seed` 影响随机瞬态、噪声、音色和打字间隔；电流嗡鸣及提示音不使用随机变体。声音由瞬态、噪声、共振和包络组合，长按键序列先合成一条音频，避免占用数百个播放事件。
 

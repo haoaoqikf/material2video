@@ -5,40 +5,28 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收三类�
 
 # Material2Video 制作调度
 
-以实际视觉效果、表达清晰度和完整作品体验判断进展。遵守[项目约定](../../../AGENTS.md)与[架构边界](../../../ARCHITECTURE.md)，事实、来源、许可及用户硬约束保持可追溯。
+已有工程先读 `project.json` 确认类型与内容根。遵守[项目约定](../../../AGENTS.md)，保留事实、来源、许可和用户硬约束。
 
-## 先定位任务
+## 按任务进入
 
-读取 project.json 确认类型与内容根。新作或实质性视听重设计进入[研究与创意试制](references/stage-research.md)，沿全片案例与组件调研及代表场景试制建立实际视觉方向。
+| 任务 | 路径与结果 |
+|---|---|
+| 做新片 | [研究与创意试制](references/stage-research.md)用实际画面验证方向。接着[正式设计](references/stage-design.md)落实全片骨架和场景，再[制作与验收](references/stage-production.md)交付同一已验候选。30 秒及以内可直接在全片工程中迭代和取帧，正式范围以[审核策略](references/review-contract.md#审核策略)为准。 |
+| 改现有片 | 从[修订入口](references/video-revision.md)定位最早受影响的阶段，复用有效证据，复查受影响的画面和衔接，再按[制作与验收](references/stage-production.md)核验新版整片。 |
+| 先看设计 | 用[网页原生样品](references/design-samples.md)交付通过的同源静帧、参考和观察范围。纯静态只需网页和关键帧，动态目标另验完整过程。 |
+
+## 按类型看重点
 
 <!-- generated:type-catalog:start -->
 | 类型 | 创作指导 |
 |---|---|
-| `text-motion` | [制作流程](references/production-workflow.md)：研究、设计、制作与验收。 |
-| `data-evolution` | [制作流程](references/production-workflow.md)：研究、设计、制作与验收。 |
-| `spatial-3d` | [制作流程](references/production-workflow.md)：研究、设计、制作与验收。 |
+| `text-motion` | 看文字层级、揭示节拍和阅读窗口。 |
+| `data-evolution` | 核对数据口径、可比尺度和变化过程。 |
+| `spatial-3d` | 看空间尺度、相机路径和关键对象的揭示。 |
 <!-- generated:type-catalog:end -->
 
-## 三阶段
+## 按需查阅
 
-| 阶段 | 主指南 | 重点 |
-|---|---|---|
-| 研究与创意试制 | [研究与试制](references/stage-research.md) | 全片案例调研、全片组件选型、代表场景试制与对照 |
-| 正式设计 | [完整设计与预演](references/stage-design.md) | 逐场落实已验证方案，按实现缺口补查组件 |
-| 制作与验收 | [制作迭代与验收交付](references/stage-production.md) | 实现品质，验证整片并交付 |
-
-新作从[研究与试制](references/stage-research.md)开始；修订先读[修订入口](references/video-revision.md)，复用有效研究和当前证据。按[具体标杆与拆解](references/reference-video-analysis.md)转化当前内容，比较同场景设计后集中打磨。先看图片按[原生样品](references/design-samples.md)交付通过的同源静帧、参考和覆盖范围。
-
-## 评审与完成
-
-按[审核策略](references/review-contract.md)执行关键帧、适用关键样片的独立评审与总代理整片证据复核。按[视觉复核](references/visual-review-rubric.md#世界级品质与风格开放)区分试制艺术方向与正式成片完成度，每项和整体明确通过或不通过。总代理按实际抽帧、时间轴和适用信号初筛、核对覆盖与选案。研究到交付均不要求播放视频观看或实际试听。
-
-固定保留 RESEARCH.md、DESIGN.md 及每个 design/scenes/<scene-id>.md。总设计先定全片骨架，逐场按[四问模板](references/scene-design.md#场景模板)深化对象、节拍和光影。记录归属见[文档分工](references/scene-design.md#分工与对应)。
-
-[逐场制作循环](references/scene-design.md#渐进设计与开发循环)统一片段粗排、关键过程、精修与接续检查。[原生样品](references/design-samples.md)支持静态和动态采集。[工具协议](references/review-protocol.md)说明字段与命令，[隔离方法](references/subagent-review.md)说明独立执行。
-
-## 条件阅读
-
-三类作品有自身旁白且需要选音时，按[配音指南](references/voice-and-rhythm.md#口播作品的固定默认音色)登记默认的「真人播客女」。
-
-[阅读路由](references/guidance-routes.json)维护触发条件与唯一权威。素材检索读[素材台账](references/material-sourcing.md)，运动实现读[运行契约](references/code-scene-runtime.md#运动实现约定)。改材料后重新 prepare，修复先按帧/信号核对局部效果再汇总全片。命令以[README](../../../README.md)和实际帮助为准。
+- [场景设计](references/scene-design.md#分工与对应)维护固定材料、逐场四问、制作循环及写入位置。
+- [审核策略](references/review-contract.md)维护完成条件与证据范围。送审时读[隔离方法](references/subagent-review.md)，执行命令与填写报告时查[工具协议](references/review-protocol.md)。
+- [阅读路由](references/guidance-routes.json)列出素材、旁白、运动、专项来源和排错的触发条件。命令以[README](../../../README.md)和实际帮助为准。

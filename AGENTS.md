@@ -17,13 +17,7 @@
 - `README.md`：项目定位、当前能力与文档导航。
 - `ARCHITECTURE.md`：共享模块职责、依赖方向与架构边界。
 - `docs/PROJECT_PLAN.md`：未来功能、处理链路与阶段路线的权威来源。
-- `.agents/skills/material2video/SKILL.md`：制作流程的操作手册，Codex 与 DSH 会自动识别该目录。
-- `.agents/skills/material2video/references/material-sourcing.md`：素材检索、候选评估、许可判断与台账整理的操作手册，含 `assets report`/`contact-sheet` 用法。
-- `.agents/skills/material2video/references/stage-research.md`：研究与创意试制的主指南，衔接全片案例调研、全片组件调研、代表性试制与目标对照。
-- `.agents/skills/material2video/references/scene-design.md`：全片与场景设计分工、四问及深化模板、逐场开发与对应检查的唯一权威。总设计先组织全片骨架，详细编排按既有 scene.id 归场景文档，执行参数保留单一来源。
-- `.agents/skills/material2video/references/reference-video-analysis.md`：优秀案例调研，维护实际查看、构图、动效、节奏与视觉表达拆解、本片转化及证据边界。
-- `.agents/skills/material2video/references/visual-components.md`：成熟组件调研，维护内部查找入口、外部缺口调研、组件选型与小试。
-- `.agents/skills/material2video/references/code-scene-runtime.md#运动实现约定`：运动时间换算、共享曲线、显式缓动、确定性与数据联动的技术入口。
+- [制作 Skill](.agents/skills/material2video/SKILL.md)提供新作、修订、样品入口。Codex 与 DSH 会自动识别该目录。实际任务按[阅读路由](.agents/skills/material2video/references/guidance-routes.json)进入对应权威指南。
 - `openspec/config.yaml`：OpenSpec 的项目语境；`openspec/specs/` 保存已归档能力规格，`openspec/changes/` 保存进行中的变更。
 
 ## OpenSpec 工作流
@@ -51,8 +45,7 @@
 - **同一画面素材默认只用一次**：同一成片内，同一张原图或同一段原始视频默认只出现一次。换文件名、裁切、调色、镜像或另截同一连续镜头，仍按同一素材核对；连续展示中的推进和细节放大计为一次。只有需要观众回看原画面才能理解的前后对照或回放可以例外，在对应场景设计中记录原片、各次成片时间窗和理由。选材、排镜与整片复核按[同一成片内的素材使用](.agents/skills/material2video/references/material-sourcing.md#同一成片内的素材使用)执行。
 - **设计样品持续打磨并原生交付**：按[网页原生样品](.agents/skills/material2video/references/design-samples.md)执行。总体探索不设工作时长或尝试次数上限，单个方案按[暂停送审规则](.agents/skills/material2video/references/production-workflow.md#试制暂停送审与重新选案)判断是否继续。独立失败、证据不足、缺失或失效保持未完成。图片必须来自可复现的实际网页；纯静态不要求视频编码，动态须完整过程验证，不直接交付 AI 图或整图贴面包装。
 - **视频检查用抽帧和信号**：参考研究、素材筛选、试制、评审和交付均不要求播放视频来观看，也不要求实际试听。可用静帧、按时间排列的抽帧、自动解码、帧差、字幕时序和适用音频信号；只报告证据覆盖的结论。
-- **制作与交付评审**：按[审核策略](.agents/skills/material2video/references/review-contract.md)判断关键样片适用范围，并完成正式关键帧、技术 QA 与总代理整片证据复核。
-- **固定设计材料与品质责任**：固定保留 RESEARCH.md、DESIGN.md 和每个正式场景文档。默认四问、按机制深化，详见场景指南。试制及正式关键帧均独立盲审并做目标对照。试制动态样片由总代理用帧与信号核验，正式关键片段按审核政策独立对照。每项和整体明确通过或不通过。总代理核对证据、初筛并负责选案及交付。具体标准及职责见审核政策和视觉复核。
+- **设计材料与交付**：按[场景设计](.agents/skills/material2video/references/scene-design.md#分工与对应)维护固定材料，按[审核策略](.agents/skills/material2video/references/review-contract.md)完成适用核查与独立评审。总代理负责初筛、选案、整片复核与交付。
 - **评审独立**：适用审核必须由独立子代理执行；用途、风险触发与失败复查统一按[审核策略](.agents/skills/material2video/references/review-contract.md)派生，不在其他入口重写策略。评审包隔离、执行与降级遵守[独立子代理评审](.agents/skills/material2video/references/subagent-review.md)，视觉判断按[视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)；降级自审须显著披露，不得据此关闭独立评审项。
 - 新增代码必须加入 Git 管理；新增或修改的交付文档也必须纳入版本控制。
 - **文章内容不入库**：`videos/` 下的作品目录（原文、分镜、专属网页）是作品内容，已在 `.gitignore`
