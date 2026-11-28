@@ -262,15 +262,6 @@ def submit(work, *, compare=False, req=None, **kwargs):
     return first
 
 
-def submit_visual(work, *, who):
-    root, manifest = work
-    req = request()
-    req.update(references=['trial.png'], conditions=['实际主体与空间品质'])
-    blind = reviews.import_report(root, manifest, report(work, reviews.package(root, manifest, req), who=who))
-    reviews.import_report(root, manifest, report(work, reviews.compare(root, manifest, blind['id']), who=who))
-    return blind
-
-
 def test_local_trial_without_design_or_board_and_readonly_state(work):
     root, manifest = work
     assert not (root / "DESIGN.md").exists() and not (root / "storyboard.json").exists()
