@@ -113,7 +113,7 @@ def _parser() -> argparse.ArgumentParser:
                      help="ref audio 必填：用户明确要求复用该参考作品音频的说明原文")
 
     author = sub.add_parser("author", help="三类作品的语义审查、候选稿与素材操作")
-    author.add_argument("workflow", choices=("status", "input-review", "candidate", "adopt-candidate", "keyframes", "assets", "sounds"))
+    author.add_argument("workflow", choices=("status", "input-review", "candidate", "adopt-candidate", "keyframes", "assets"))
     author.add_argument("options", nargs=argparse.REMAINDER)
     data = sub.add_parser("data", help="结构化数据来源编排")
     data.add_argument("workflow", choices=("financial-plan",))

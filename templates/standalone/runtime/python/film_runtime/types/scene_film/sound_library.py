@@ -1,20 +1,17 @@
 """音效双来源落盘、留证和离线复核；不向画面服务器暴露音频目录。"""
 from __future__ import annotations
 
-import argparse
 import json
 import logging
 from pathlib import Path
 import re
 import shutil
-import subprocess
-import sys
 import tempfile
 import wave
 
 from film_runtime.core import security
 from film_runtime.core.errors import VideoError
-from film_runtime.core.project import _write_json, load_project
+from film_runtime.core.project import _write_json
 from film_runtime.core.validate import obj
 from film_runtime.engine import audio
 from film_runtime.core.media_policy import UNKNOWN_LICENSES
@@ -214,35 +211,3 @@ def import_assets(root: Path, manifest: dict, *, base: Path, transport=None) -> 
             raise
     logger.info("音效库发布完成：%d 项", len(adopted))
     return record
-
-
-def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(prog="m2v author sounds")
-    parser.add_argument("command", choices=("catalog", "import", "audit"))
-    parser.add_argument("--project")
-    parser.add_argument("--manifest")
-    parser.add_argument("--base")
-    args = parser.parse_args(argv)
-    try:
-        if args.command == "catalog":
-            result = {"generatorVersion": sound_synthesis.VERSION, "effects": sound_synthesis.catalog()}
-        else:
-            if not args.project:
-                parser.error("需要 --project")
-            root, project = load_project(args.project)
-
-            if args.command == "import":
-                if not args.manifest:
-                    parser.error("import 需要 --manifest")
-                manifest = Path(args.manifest).resolve()
-                result = import_assets(root, json.loads(manifest.read_text(encoding="utf-8-sig")),
-                                       base=Path(args.base).resolve() if args.base else manifest.parent)
-            else:
-                assets, inputs = resolve(root)
-                result = {"valid": True, "count": len(assets), "inputs": inputs}
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-    except (VideoError, OSError, ValueError, TypeError, subprocess.TimeoutExpired) as exc:
-        logger.warning("音效操作失败：%s", type(exc).__name__)
-        print(f"m2v author sounds: {exc}", file=sys.stderr)
-        return 2

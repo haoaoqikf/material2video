@@ -84,7 +84,7 @@ def test_old_project_storyboard_style_and_prepared_are_rejected(tmp_path):
 
 
 def test_removed_commands_are_not_registered(capsys):
-    for command in ("general", "styles", "migrate", "relocate", "financial"):
+    for command in (["general"], ["styles"], ["migrate"], ["relocate"], ["financial"], ["author", "sounds", "import"]):
         with pytest.raises(SystemExit):
-            main([command])
+            main(command)
         assert "invalid choice" in capsys.readouterr().err

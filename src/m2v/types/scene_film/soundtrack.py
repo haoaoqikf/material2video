@@ -1,15 +1,10 @@
-"""文章声音契约与程序生成提示音；编排决定由助手保存，渲染不猜测。"""
+"""创作命令读取分镜时的声音编排校验。"""
 from __future__ import annotations
 
 from m2v.core.video_config import storyboard_fps
 
-import math
-import struct
-import wave
 from pathlib import Path
 from m2v.core.errors import M2VError
-from m2v.engine import audio
-from m2v.engine.sound import asset_digest
 from m2v.core.validate import integer
 from . import sound_library, scene_events
 
@@ -111,92 +106,3 @@ def validate(data: dict, root: Path) -> None:
         if fade * 2 > end - start:
             raise M2VError("静音窗口淡化长度不得超过窗口的一半")
         previous_end = end
-
-
-def synthesize(name: str, target: Path) -> None:
-    """无外部资产版权依赖的确定性正弦提示音，短包络避免点击爆音。"""
-    duration = {"ding": .65, "ding-dong": 1.05, "click": .08, "transition": .3}[name]
-    with wave.open(str(target), "wb") as dest:
-        dest.setparams((1, 2, audio.SAMPLE_RATE, 0, "NONE", "not compressed"))
-        samples = bytearray()
-        for i in range(round(duration * audio.SAMPLE_RATE)):
-            t = i / audio.SAMPLE_RATE
-            if name == "ding-dong":
-                local = t if t < .35 else t - .35
-                frequency = 1046.5 if t < .35 else 784
-            else:
-                local = t
-                frequency = {"ding": 1046.5, "click": 1800, "transition": 500}.get(name, 500)
-            phase = 2 * math.pi * (frequency * local + (1500 * local**2 if name == "transition" else 0))
-            envelope = min(1, local/.006) * math.exp(-local * (50 if name == "click" else 7)) * min(1, (duration-t)/.02)
-            samples.extend(struct.pack("<h", round(16000 * envelope * math.sin(phase))))
-        dest.writeframes(samples)
-
-
-def mix(root: Path, source: dict, compiled: list[dict], raw: Path, target: Path,
-        cues: list[dict], duration: float, work: Path, inputs: dict, *, effect_start_frames: list[float] | None = None) -> None:
-    from .explainer import local_file
-    fps = storyboard_fps({}, source)
-    track = source.get("soundtrack", {})
-    total_frames = round(duration * fps)
-    for envelope in track.get("envelopes", []):
-        if envelope["keyframes"][-1]["frame"] > total_frames:
-            raise M2VError("声音包络关键帧超过全片时长")
-        if envelope["track"] == "music" and "music" not in track:
-            raise M2VError("music 包络需要声明 soundtrack.music")
-        if envelope["track"] == "effects" and not track.get("effects"):
-            raise M2VError("effects 包络需要声明 soundtrack.effects")
-    for window in track.get("silence", []):
-        if window["endFrame"] > total_frames:
-            raise M2VError("静音窗口超过全片时长")
-    music = None
-    if "music" in track:
-        settings = track["music"]
-        file = local_file(root, settings["sourceRef"], "music")
-        inputs["file:" + file.relative_to(root).as_posix()] = asset_digest(file)
-        music = (file, settings)
-    effects = []
-    starts = (effect_start_frames if effect_start_frames is not None else
-              scene_events.effect_starts(track.get("effects", []), compiled, fps, total_frames))
-    if len(starts) != len(track.get("effects", [])):
-        raise M2VError("音效解析起点数量与声明不一致")
-    library, library_inputs = sound_library.resolve(root)
-    inputs.update(library_inputs)
-    local_cache = {}
-    for index, effect in enumerate(track.get("effects", [])):
-        start = starts[index] / fps
-        if not 0 <= start < duration: raise M2VError(f"音效 {index} 起点越界：{start:.3f}s")
-        if "builtin" in effect:
-            file = work / f"builtin-{index}.wav"
-            synthesize(effect["builtin"], file)
-            info = sound_library.probe(file)
-        elif "assetId" in effect:
-            info = library[effect["assetId"]]
-            file = info["file"]
-        else:
-            source_file = local_file(root, effect["sourceRef"], "effect")
-            inputs["file:" + source_file.relative_to(root).as_posix()] = asset_digest(source_file)
-            if source_file not in local_cache:
-                file = work / f"local-effect-{index}.wav"
-                info = sound_library.decode(source_file, file)
-                local_cache[source_file] = (file, info)
-            file, info = local_cache[source_file]
-        trim = effect.get("trimStartMs", 0) / 1000
-        available = info["durationSeconds"] - trim
-        if available <= 0:
-            raise M2VError(f"音效 {index} trimStartMs 超出素材范围")
-        length = effect.get("durationMs", available * 1000) / 1000
-        if not effect.get("loop") and length > available + 1/audio.SAMPLE_RATE:
-            raise M2VError(f"音效 {index} durationMs 超出素材剩余时长；需要重复时声明 loop")
-        for field in ("fadeInMs", "fadeOutMs"):
-            if effect.get(field, 0) > length * 1000:
-                raise M2VError(f"音效 {index} {field} 超出播放时长")
-        effects.append(audio.Effect(file, start, effect.get("gainDb", -18), trim, length,
-                                   effect.get("loop", False), effect.get("fadeInMs", 0)/1000,
-                                   effect.get("fadeOutMs", 0)/1000, effect.get("pan")))
-    if music or effects:
-        audio.mix(raw, target, duration,
-                  [{"start": c["startFrame"]/ fps, "end": c["endFrame"]/ fps} for c in cues], music, effects, work,
-                  fps=fps, envelopes=track.get("envelopes", []), silence=track.get("silence", []))
-    else:
-        audio.normalize(raw, target)

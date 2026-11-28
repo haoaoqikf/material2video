@@ -42,7 +42,7 @@ Five video types share a standalone project foundation. Each project adopts the 
 - `spatial-3d` renders 3D models and spaces.
 
 Create visuals in code or edit recorded media. Map routes and situational storytelling are available as techniques.
-Projects support clip previews and full exports, synthesized narration, and bilingual subtitles with an adaptive halo.
+Projects support clip previews and full exports, synthesized narration, project-local sound recipes, and bilingual subtitles with an adaptive halo.
 
 ## Documentation
 

@@ -246,7 +246,7 @@ def test_qa_frozen_problem_points_to_shot_and_time(tmp_path):
 
 @pytest.mark.media
 def test_normalize_reaches_cinematic_loudness(tmp_path):
-    from m2v.engine import audio
+    from film_runtime.engine import audio
     source = make_audio(tmp_path / "quiet.wav", seconds=3)
     target = tmp_path / "master.wav"
     audio.normalize(source, target, integrated=-14.0, true_peak=-1.0)
@@ -256,7 +256,7 @@ def test_normalize_reaches_cinematic_loudness(tmp_path):
 
 @pytest.mark.media
 def test_master_hits_cinematic_loudness_and_peak(tmp_path):
-    from m2v.engine import audio
+    from film_runtime.engine import audio
     source = make_audio(tmp_path / "quiet.wav", seconds=3)
     target = tmp_path / "cinematic-master.wav"
     audio.master(source, target, integrated=-14.0, true_peak=-1.0)
@@ -272,7 +272,7 @@ def test_master_corrects_under_loud_output_with_peak_headroom(tmp_path, monkeypa
     import math
     import wave
     from array import array
-    from m2v.engine import audio
+    from film_runtime.engine import audio
 
     rate=24000
     samples=array('h')
@@ -312,7 +312,7 @@ def test_master_corrects_under_loud_output_with_peak_headroom(tmp_path, monkeypa
 @pytest.mark.media
 def test_master_preserves_digital_silence_with_non_finite_loudness(tmp_path):
     import wave
-    from m2v.engine import audio
+    from film_runtime.engine import audio
     source,target=tmp_path/'silence.wav',tmp_path/'master.wav'
     audio.ffmpeg(['-f','lavfi','-i','anullsrc=r=24000:cl=stereo','-t','1',
                   '-c:a','pcm_s16le',str(source)])

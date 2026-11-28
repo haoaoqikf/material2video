@@ -12,10 +12,12 @@ import pytest
 from m2v.cli import main
 from m2v.core.errors import M2VError
 from m2v.core.project import load_current_prepared
-from m2v.engine import audio
+from film_runtime.core.errors import VideoError
+from film_runtime.engine import audio
+from film_runtime.types.scene_film import explainer_prepare, sound_library as library, sound_synthesis as synth
 from m2v.engine.sound import asset_digest
-from m2v.types.scene_film import adapter, explainer, sound_library as library, sound_synthesis as synth
-from helpers.scene_film import board, fake_record, project, scene_root
+from m2v.types.scene_film import explainer
+from helpers.scene_film import bind_fixture_implementation, board, fake_record, project, scene_root
 
 pytestmark = pytest.mark.media
 
@@ -95,7 +97,7 @@ def test_hum_loop_has_no_discontinuous_seam(tmp_path):
     {"name": "keyboard-typing", "eventsMs": [10, 10]},
 ])
 def test_invalid_recipe(value):
-    with pytest.raises(M2VError):
+    with pytest.raises(VideoError):
         synth.recipe(value)
 
 
@@ -141,7 +143,7 @@ def test_failed_batch_preserves_existing_record_and_files(tmp_path, failure):
         source.write_bytes(b"")
     else:
         entry = generated("new")
-    with pytest.raises(M2VError):
+    with pytest.raises(VideoError):
         library.import_assets(tmp_path, manifest(generated("new"), entry), base=tmp_path)
     assert (tmp_path / library.RECORD).read_bytes() == prior
     assert sorted(p.name for p in (tmp_path / library.DIRECTORY).iterdir()) == before
@@ -152,18 +154,20 @@ def test_audit_rejects_bad_records(tmp_path, field, value):
     data = library.import_assets(tmp_path, manifest(generated()), base=tmp_path)
     data["assets"][0][field] = value
     (tmp_path / library.RECORD).write_text(json.dumps(data), encoding="utf-8")
-    with pytest.raises(M2VError):
+    with pytest.raises(VideoError):
         library.resolve(tmp_path)
 
 
-def test_cli_catalog_import_audit(tmp_path, capsys):
-    root, _ = project(tmp_path)
-    file = tmp_path / "sound.json"
-    file.write_text(json.dumps(manifest(generated())), encoding="utf-8")
-    assert main(["author", "sounds", "catalog"]) == 0
-    assert "keyboard-typing" in capsys.readouterr().out
-    assert main(["author", "sounds", "import", "--project", str(root), "--manifest", str(file)]) == 0
-    assert main(["author", "sounds", "audit", "--project", str(root)]) == 0
+def test_author_accepts_current_sound_record_and_rejects_old_generator(tmp_path, capsys):
+    data = board(soundtrack={"effects": [{"assetId": "keys", "sceneId": "a"}]})
+    root, _ = project(tmp_path, data)
+    record = library.import_assets(root, manifest(generated()), base=root)
+    command = ["author", "input-review", "--storyboard", str(root / "storyboard.json")]
+    assert main(command) == 0
+    record["assets"][0]["synthesis"]["generator"] = "m2v.sound-synthesis"
+    (root / library.RECORD).write_text(json.dumps(record), encoding="utf-8")
+    assert main(command) == 2
+    assert "作品本地 setup" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("extra", [
@@ -189,7 +193,8 @@ def test_no_narration_prepare_sync_pan_and_fingerprint(tmp_path, monkeypatch, fp
         "trimStartMs": 10, "durationMs": 400, "fadeOutMs": 40, "pan": 1}]}
     (root / "storyboard.json").write_text(json.dumps(data), encoding="utf-8")
     fake_record(monkeypatch)
-    result = adapter.prepare(root, project_data)
+    bind_fixture_implementation(root, monkeypatch)
+    result = explainer_prepare.prepare(root, project_data)
     file = root / result["audio"]["segments"][0]["path"]
     (channels, rate, count), samples = pcm(file)
     assert channels == 2 and count == result["durationInFrames"] * rate // fps
@@ -200,8 +205,9 @@ def test_no_narration_prepare_sync_pan_and_fingerprint(tmp_path, monkeypatch, fp
     assert right > 1000 and left < right * .001
     assert energy(samples[round(.95*rate)*2:]) == 0
     assert "file:" + library.RECORD in result["inputs"]
+    load_current_prepared(root, project_data)
     library.import_assets(root, manifest(generated("extra", "mouse-click")), base=root)
-    with pytest.raises(M2VError, match="文件已变化"):
+    with pytest.raises(M2VError, match=r"文件已变化.*sound-sources\.json"):
         load_current_prepared(root, project_data)
 
 
@@ -336,8 +342,8 @@ def test_prepare_rejects_source_and_timeline_boundaries(tmp_path, monkeypatch, e
     data["soundtrack"] = {"effects": [{"assetId": "spark", "sceneId": "a", **extra}]}
     (root / "storyboard.json").write_text(json.dumps(data), encoding="utf-8")
     fake_record(monkeypatch)
-    with pytest.raises(M2VError, match=match):
-        adapter.prepare(root, project_data)
+    with pytest.raises(VideoError, match=match):
+        explainer_prepare.prepare(root, project_data)
 
 
 def test_audit_checks_unused_sound_and_truncated_wav(tmp_path):
@@ -346,7 +352,7 @@ def test_audit_checks_unused_sound_and_truncated_wav(tmp_path):
     file.write_bytes(file.read_bytes()[:-10])
     with pytest.raises(M2VError, match="摘要变化"):
         explainer.validate(board(), scene_root(tmp_path))
-    with pytest.raises(M2VError, match="截断"):
+    with pytest.raises(VideoError, match="截断"):
         library.probe(file)
 
 
@@ -362,7 +368,7 @@ def test_third_party_duration_limit_is_not_silent_truncation(tmp_path, monkeypat
                 out.writeframesraw(bytes(24000*4))
         return library.probe(target)
     monkeypatch.setattr(library, "decode", overlong)
-    with pytest.raises(M2VError, match="600 秒"):
+    with pytest.raises(VideoError, match="600 秒"):
         library.import_assets(tmp_path, manifest(imported(source)), base=tmp_path)
     assert not (tmp_path / library.RECORD).exists()
 
@@ -393,11 +399,12 @@ def test_first_import_invalidates_prepared_absence(tmp_path, monkeypatch):
     data["scenes"][0].update(narrationSegments=[], durationFrames=120)
     (root / "storyboard.json").write_text(json.dumps(data), encoding="utf-8")
     fake_record(monkeypatch)
-    result = adapter.prepare(root, project_data)
+    bind_fixture_implementation(root, monkeypatch)
+    result = explainer_prepare.prepare(root, project_data)
     assert result["inputs"]["absent-file:" + library.RECORD] == "absent"
     load_current_prepared(root, project_data)
     library.import_assets(root, manifest(generated()), base=root)
-    with pytest.raises(M2VError, match="文件已变化"):
+    with pytest.raises(M2VError, match=r"文件已变化.*sound-sources\.json"):
         load_current_prepared(root, project_data)
 
 

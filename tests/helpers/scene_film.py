@@ -111,6 +111,12 @@ def fake_record(monkeypatch):
     return calls
 
 
+def bind_fixture_implementation(root: Path, monkeypatch) -> None:
+    # 单元测试进程导入模板模块，只给出属于临时作品的实现指纹。
+    entry = root / "scripts/video.py"
+    monkeypatch.setattr(prepare, "implementation_files", lambda: {"scripts/video.py": prepare.digest(entry)})
+
+
 def fake_tts(monkeypatch, seconds=1, samples=None):
     """假合成：可声明与落盘长度不同的时长，用于快速验证帧账本。"""
     calls = []

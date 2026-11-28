@@ -180,6 +180,8 @@ Pixabay 是 `search` 唯一启用的 API 检索来源，凭据只从环境变量
 uv run --frozen python scripts/video.py setup
 ```
 
+若工程已有被本地校验拒绝的旧共享生成器登记，先确认配方覆盖所有仍使用的音效，保留旧登记及源文件以供追溯，再移开旧的 `assets/sound-sources.json` 并执行 `setup`。保持生成器标识由本地运行时写入。
+
 合成音效有 `keyboard-key`、`keyboard-typing`、`mouse-click`、`switch`、`spark`、`electric-crackle`、`electric-hum`、`whoosh`、`impact-soft`、`impact-metal`、`success`、`warning`。它们属于风格化拟音。需要真实材质时选择第三方实录。
 
 导入清单 `schemaVersion: 1`，`assets` 为1～300项，音效库总数最多300项。每项 `id` 为1～80位字母、数字、下划线或连字符；`synthesis`、`localPath`、`mediaUrl` 三选一：

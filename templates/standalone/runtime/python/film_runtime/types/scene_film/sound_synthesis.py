@@ -42,7 +42,7 @@ def recipe(value: dict) -> dict:
     value = obj(value, "synthesis", {"name", "seed", "durationMs", "intensity", "rate", "eventsMs"})
     name = value.get("name")
     if not isinstance(name, str) or name not in CATALOG:
-        raise VideoError("未知合成音效，请用 sounds catalog 查询")
+        raise VideoError("未知合成音效，请按声音指南检查 sound-recipe.json")
     result = {"name": name, "seed": integer(value.get("seed", 0), 0, 2**32-1, "seed"),
               "durationMs": integer(value.get("durationMs", CATALOG[name][2]), 30, 30000, "durationMs"),
               "intensity": number(value.get("intensity", .7), .05, 1, "intensity"),

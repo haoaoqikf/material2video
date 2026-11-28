@@ -20,11 +20,14 @@
 
 分镜必须同时声明 `version: 9` 和 `schemaVersion: 9`。每幕使用 `template: "code"`，通过 `content.entry` 指向作品内 TSX。新工程从本地 `src/code-scene/context` 导入时间接口，组件和第三方依赖由作品显式采用，不解析 `m2v/*`。分镜字段见[分镜契约](../../.agents/skills/material2video/references/storyboard-schema.md)；存量画面参考见[代码场景运行时](../../.agents/skills/material2video/references/code-scene-runtime.md)。原文、主题、字幕、媒体、声音与事件仍使用分镜 v9。
 
-分镜顶层 `sources` 把来源 ID 绑定到作品内文件，幕内 `content.sourceIds` 选择来源。主项目仍保留 `financial-series`、`construction`、`vehicle-model` 的材料校验与计算辅助；新工程按需携带所采用的准备模块、数据快照及绘制实现，基础模板缺模块时明确报错，不回退主项目SDK。金融计划辅助入口为 `m2v data financial-plan --project <作品目录> [--duration-seconds N]`，要求分镜恰好声明一个金融来源。
-
-三类创作都从统一阶段指南进入。金融行情、构件与车辆专项指南按实际绑定的来源展开。固定数学模型的数据演化无需金融行情计划。旧类型在初始化和校验时会被拒绝。当前不支持以口播为主线、配实拍或外部素材剪辑成片的形态。
-
 旧类型名、`project.style`、project v1/v2、分镜 v8 及旧准备记录明确拒绝。升级后的材料需重新编排并重新准备；没有兼容入口或迁移命令，旧实现从 Git 历史追溯。
+
+### 按需采用结构化来源
+
+分镜实际使用 `sources` 时，随作品携带准备模块、数据快照和绘制实现，幕内以 `content.sourceIds` 选择来源。[分镜的来源契约](../../.agents/skills/material2video/references/storyboard-schema.md#结构化来源v9)规定文件与帧绑定边界。
+
+- 金融序列项目可用 `m2v data financial-plan` 编排计划，入口要求恰好声明一个 `financial-series` 来源。详见[金融来源](../../.agents/skills/material2video/references/financial-timeseries-video.md)。
+- 三维作品按采用的来源查[建筑构件与步骤](../../.agents/skills/material2video/references/building-construction-video.md)或[车辆模型与镜头](../../.agents/skills/material2video/references/vehicle-showcase-video.md)。
 
 ## 恢复与运行
 

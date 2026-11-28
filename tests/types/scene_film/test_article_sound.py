@@ -13,8 +13,10 @@ import pytest
 from m2v.core.errors import M2VError
 from m2v.core.project import load_current_prepared
 from m2v.engine.sound import asset_digest
-from m2v.types.scene_film import adapter, explainer, soundtrack
-from helpers.scene_film import board, fake_record, fake_tts, project, scene, scene_root
+from m2v.types.scene_film import explainer
+from film_runtime.core.errors import VideoError
+from film_runtime.types.scene_film import explainer_prepare, soundtrack
+from helpers.scene_film import bind_fixture_implementation, board, fake_record, fake_tts, project, scene, scene_root
 
 
 
@@ -111,7 +113,8 @@ def test_prepare_mixes_builtin_and_local_effects(tmp_path, monkeypatch):
     (root / "storyboard.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     fake_tts(monkeypatch)
     fake_record(monkeypatch)
-    result = adapter.prepare(root, manifest)
+    bind_fixture_implementation(root, monkeypatch)
+    result = explainer_prepare.prepare(root, manifest)
     master = root / result["audio"]["segments"][0]["path"]
     assert result["durationInFrames"] == 84
     # 母版严格等于全片时长：8 秒循环音床被裁到 84 帧，而不是拖长成片。
@@ -120,8 +123,9 @@ def test_prepare_mixes_builtin_and_local_effects(tmp_path, monkeypatch):
     # 本地音床与音效进入版本绑定，替换素材会让准备失效。
     assert result["inputs"]["file:assets/bed.wav"] == asset_digest(bed)
     assert result["inputs"]["file:assets/click.wav"] == asset_digest(click)
+    load_current_prepared(root, manifest)
     bed.write_bytes(b"changed")
-    with pytest.raises(M2VError, match="文件已变化"):
+    with pytest.raises(M2VError, match=r"文件已变化.*assets/bed\.wav"):
         load_current_prepared(root, manifest)
 
 
@@ -133,8 +137,8 @@ def test_effect_start_beyond_duration_is_rejected(tmp_path, monkeypatch):
     (root / "storyboard.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     fake_tts(monkeypatch)
     fake_record(monkeypatch)
-    with pytest.raises(M2VError, match="起点越界"):
-        adapter.prepare(root, manifest)
+    with pytest.raises(VideoError, match="起点越界"):
+        explainer_prepare.prepare(root, manifest)
 
 
 @pytest.mark.media
@@ -148,8 +152,8 @@ def test_effect_offset_must_land_inside_the_clip(tmp_path, monkeypatch):
     fake_tts(monkeypatch)
     fake_record(monkeypatch)
     # 第二幕起点 68 帧 ≈ 1.13 秒，提前 8 秒会落到全片之外。
-    with pytest.raises(M2VError, match="起点越界"):
-        adapter.prepare(root, manifest)
+    with pytest.raises(VideoError, match="起点越界"):
+        explainer_prepare.prepare(root, manifest)
 
 
 @pytest.mark.media
@@ -159,7 +163,7 @@ def test_soundtrack_without_music_normalizes_narration(tmp_path, monkeypatch):
     (root / "storyboard.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     fake_tts(monkeypatch)
     fake_record(monkeypatch)
-    result = adapter.prepare(root, manifest)
+    result = explainer_prepare.prepare(root, manifest)
     master = root / result["audio"]["segments"][0]["path"]
     with wave.open(str(master), "rb") as stream:
         assert stream.getnframes() == result["durationInFrames"] * 400

@@ -16,7 +16,8 @@ from m2v.core.errors import M2VError
 from m2v.core.project import file_inputs, load_current_prepared, load_project, save_prepared
 from m2v.core.video_config import storyboard_fps
 from m2v.engine import lookdev
-from m2v.types.scene_film import adapter, explainer, soundtrack
+from m2v.types.scene_film import adapter, explainer
+from film_runtime.types.scene_film import soundtrack
 from film_runtime.types.scene_film import code_scenes, reading_pace
 from helpers.scene_film import board, fake_record, fake_tts, project, scene, scene_root
 from helpers.scene_film import prepare_build, requires_node

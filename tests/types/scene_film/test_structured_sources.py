@@ -11,6 +11,7 @@ from helpers.financial import project as financial_fixture
 from m2v.cli import main
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project
+from m2v.standalone.scaffold import install_default_style
 from m2v.types.scene_film import sources
 
 
@@ -21,11 +22,12 @@ def write(root, name, value):
 def board(root, kind, source_kind, files, *, width, height, duration):
     if root.exists() and any(root.iterdir()):
         # 夹具目录已有来源文件；直接写 v3 工程描述，不重复覆盖或清空。
-        (root / "project.json").write_text(json.dumps({
+        manifest = {
             "schemaVersion": 3, "id": root.name, "type": kind,
             "materials": {"storyboard": "storyboard.json"},
-            "output": {"width": width, "height": height, "fps": 30, "audio": "optional"}},
-            ensure_ascii=False), encoding="utf-8")
+            "output": {"width": width, "height": height, "fps": 30, "audio": "optional"}}
+        write(root, "project.json", manifest)
+        install_default_style(root, manifest)
     else:
         create_project(root, kind, {"storyboard": "storyboard.json"},
                        output={"width": width, "height": height, "fps": 30, "audio": "optional"})
