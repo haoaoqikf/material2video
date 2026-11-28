@@ -62,6 +62,7 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
+"m2v.type_system" = ["catalog.json", "references/*.json"]
 "m2v.engine" = ["kokoro_voices.json"]
 "m2v.materials" = ["model_registry.json"]
 

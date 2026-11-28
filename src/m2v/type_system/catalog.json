@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "types": [
     {
       "name": "text-motion",
@@ -41,7 +41,13 @@
             ]
           }
         }
-      ]
+      ],
+      "defaultStyle": {
+        "id": "ibm-2x-kinetic-type",
+        "revision": 1,
+        "source": "references/ibm-2x-kinetic-type-1.json",
+        "referenceDigest": "fdcf100ddfff220ebf4727ef58ffe2ef4257828ad677a5ea88d130133d378a4b"
+      }
     },
     {
       "name": "data-evolution",
@@ -83,7 +89,13 @@
             ]
           }
         }
-      ]
+      ],
+      "defaultStyle": {
+        "id": "apple-keynote-presentation",
+        "revision": 1,
+        "source": "references/apple-keynote-presentation-1.json",
+        "referenceDigest": "8a8b7f52530f2be77acf1912f467ee90c4dd708db4ae3eaf511a4e40f709f942"
+      }
     },
     {
       "name": "spatial-3d",
@@ -125,7 +137,13 @@
             ]
           }
         }
-      ]
+      ],
+      "defaultStyle": {
+        "id": "nasa-svs-scientific-visualization",
+        "revision": 1,
+        "source": "references/nasa-svs-scientific-visualization-1.json",
+        "referenceDigest": "e1ec9bfcaff51cc8e1be10ef41a26d22e4d39b76af6bf0a4c6b537cd553c7d61"
+      }
     }
   ]
 }

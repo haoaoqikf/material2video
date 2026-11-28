@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "projectId": "standalone-video",
+  "type": "text-motion",
+  "visualStyle": {
+    "id": "ibm-2x-kinetic-type",
+    "revision": 1,
+    "references": [
+      {
+        "id": "ibm-lets-create",
+        "role": "overall",
+        "url": "https://www.ryanquigley.work/ibm-letscreate",
+        "scope": "主句主导时的整体构图、阅读推进、跨句一致性与收束完成度",
+        "observed": "Cursor 成片从浅底左侧的孤立光标开始，在同一左侧锚点依次排出短句，片尾以蓝色 IBM 标志收束。",
+        "evidence": {
+          "url": "https://player.vimeo.com/video/679271031?h=a284b519f8",
+          "locator": "原页内嵌的 Cursor 成片 · 200，抽帧覆盖开场、短句更替及片尾，定位点 00:03、00:19、00:23、00:26、00:28",
+          "sha256": "f8f549c0a2c9d5fb08b422db5c02247675aaf12b3ae27f953c6a94a0f96f3cbc",
+          "artifact": "本地抽帧联图",
+          "status": 403
+        },
+        "accessedAt": "2026-11-28",
+        "sourceStatus": 200
+      },
+      {
+        "id": "ibm-grid",
+        "role": "specialist",
+        "url": "https://www.ibm.com/design/language/2x-grid/",
+        "scope": "图文跨镜对齐、标题与支持内容在不同画面中的组织关系",
+        "observed": "指南用界面、印刷品和视频案例讲解如何以同一栅格组织文字与图形。",
+        "evidence": {
+          "url": "https://www.ibm.com/design/language/2x-grid/",
+          "locator": "官方文档，Divisions of two 与 2x Grid for video",
+          "sha256": "ea972870f3ac83e70a18f4260cbf1cc4ae8910e8ceae0a875da5a45c0dcef2dd",
+          "artifact": "原页响应",
+          "status": 200
+        },
+        "accessedAt": "2026-11-28",
+        "sourceStatus": 200
+      },
+      {
+        "id": "ibm-sequential",
+        "role": "specialist",
+        "url": "https://www.ibm.com/design/language/animation/tips-and-techniques/",
+        "scope": "揭示顺序、阅读方向及焦点依次交接",
+        "observed": "Sequential 演示的灰色字母条被从左进入的彩条依次点亮，随后字块移位并回到待揭示状态。",
+        "evidence": {
+          "url": "https://www.ibm.com/design/language/videos/animation/animation-tt-sequential-wide.mp4",
+          "locator": "官方 Sequential 原片 · 200，抽帧覆盖起始、接亮、移位与复归，定位点 00:00.0、00:01.2、00:02.4、00:03.4、00:04.5",
+          "sha256": "0b1562ee397ba170e4a2e492f9501a3b6023a69b515edecf573dc4a5fc084c82",
+          "artifact": "原片",
+          "status": 200
+        },
+        "accessedAt": "2026-11-28",
+        "sourceStatus": 200
+      },
+      {
+        "id": "ibm-type-basics",
+        "role": "standard",
+        "url": "https://www.ibm.com/design/language/typography/type-basics/",
+        "scope": "文本层级、对齐、阅读连贯性",
+        "observed": "文档以左对齐、调整行间距及主副标题的示例说明排版怎样帮助阅读。",
+        "evidence": {
+          "url": "https://www.ibm.com/design/language/typography/type-basics/",
+          "locator": "官方文档，Flush left、Leading 与 Titles and subtitles",
+          "sha256": "6a1a3ae438efa215be618f5324b1f661bc8cab5f05a0f9ed539edb93df261bf5",
+          "artifact": "原页响应",
+          "status": 200
+        },
+        "accessedAt": "2026-11-28",
+        "sourceStatus": 200
+      }
+    ]
+  },
+  "referenceDigest": "fdcf100ddfff220ebf4727ef58ffe2ef4257828ad677a5ea88d130133d378a4b",
+  "overrides": []
+}

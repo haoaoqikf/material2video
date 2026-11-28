@@ -35,6 +35,7 @@ def dispatch(args) -> int:
             listing.append({
                 "type": item.name,
                 "description": registry.describe(item.name),
+                "defaultStyle": catalog.catalog().get(item.name).default_style,
             })
         print(json.dumps(listing, ensure_ascii=False, indent=2))
         return 0

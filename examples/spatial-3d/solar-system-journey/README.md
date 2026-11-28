@@ -1,5 +1,7 @@
 # 太阳系之旅：两分钟连续旅程
 
+当前风格参考和观察用途见[作品参考绑定](design/style-binding.json)，发布修订见[发布凭据](design/style-release.json)。
+
 1920×1080、60 fps，当前编排为7200帧／120秒，单幕连续经过十五站。保留地月、土星和奥尔特云三个重点：地月关系、固定环带的视角揭示、外层结构与回望太阳。较174.55秒基线缩短54.55秒（31.25%），通过精简旁白和差异化行程预算完成。
 
 当前成片及四个原生样品已通过适用的技术QA、独立盲看和原目标对照，十四项必改已闭合。制作同时修复素材探测、母版溯源和辉光前数值边界，并优化只读证据校验；当前证据、观察范围和保留限制见[VERIFICATION.md](VERIFICATION.md)。
@@ -17,6 +19,8 @@ pnpm run setup --download --install-browser
 uv run --frozen python assets/fetch.py
 pnpm run validate
 pnpm run build
+New-Item -ItemType Directory -Force outputs | Out-Null
+Copy-Item -LiteralPath design/article-review.json -Destination outputs/input-review.json
 pnpm run video:prepare
 pnpm run render
 pnpm run qa

@@ -20,6 +20,8 @@ def prepared_work(root):
     (root / 'owned.py').write_text('original', encoding='utf-8')
     project = {'schemaVersion': 3, 'id': 'binding-test', 'type': 'text-motion',
                'materials': {'storyboard': 'storyboard.json'}, 'output': {'fps': 30}}
+    from m2v.standalone.scaffold import install_default_style
+    install_default_style(root, project)
     inputs = {**projects.file_inputs(root, project), 'file:owned.py': delivery.digest(root / 'owned.py'),
               'implementation': 'own-python', 'renderer': 'own-node'}
     prepared = projects.save_prepared(root, project=project, composition_id='SceneFilm', props={'version': 9},

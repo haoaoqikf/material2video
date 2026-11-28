@@ -1,0 +1,70 @@
+{
+  "id": "apple-keynote-presentation",
+  "revision": 1,
+  "references": [
+    {
+      "id": "apple-wwdc-effective-chart",
+      "role": "overall",
+      "url": "https://developer.apple.com/videos/play/wwdc2022/110340/",
+      "scope": "演示页的焦点和完成度、讲者与图示的分工、图表从铺垫到揭示的整体节奏",
+      "observed": "演示从讲者与标题分区切到黑底独立图形，并在讲解示例中先呈现空坐标框，再在同一图区揭示白色点列。",
+      "evidence": {
+        "url": "https://devstreaming-cdn.apple.com/videos/wwdc/2022/110340/3/B5BDA6B6-597F-460B-A88C-959265B6715D/downloads/wwdc2022-110340_sd.mp4",
+        "locator": "官方 SD 视频 · 200，续传 206，定位点 01:10、03:40、04:35、05:02、09:20、12:13",
+        "sha256": "2cfed6bdbe20b2165aa4348cff063137a8dff1c2bd1684122224b5bd57c81c31",
+        "artifact": "SD 原片",
+        "status": 200
+      },
+      "accessedAt": "2026-11-28",
+      "sourceStatus": "timeout"
+    },
+    {
+      "id": "apple-keynote-themes",
+      "role": "specialist",
+      "url": "https://support.apple.com/guide/keynote/create-a-presentation-tan317e80e8c/mac",
+      "scope": "主题内页面语言的连贯性，标题及内容页如何共享视觉关系",
+      "observed": "主题选择器中简洁的白底和黑底卡片与彩色和纹理预览并列，正文将主题说明为预设的幻灯片布局组合。",
+      "evidence": {
+        "url": "https://help.apple.com/assets/6A89012DB8A442E3B007EABB/6A89012E7777AF96AB088730/en_US/f1c754de8900f4a168e6518950c9a42b.png",
+        "locator": "官方文档 Create a presentation from a theme 及主题选择器截图 · 200",
+        "sha256": "c587679f2f4e0cc9a1eb169d1038ba03254ee5a5212a59741241c0b9414ed6b3",
+        "artifact": "截图",
+        "status": 200
+      },
+      "accessedAt": "2026-11-28",
+      "sourceStatus": 429
+    },
+    {
+      "id": "apple-keynote-charts",
+      "role": "specialist",
+      "url": "https://support.apple.com/en-euro/guide/keynote/tan1a8924264/mac",
+      "scope": "演示页图表对象的选择及不同数据形态的呈现",
+      "observed": "图表选择器并排展示柱状、条状、折线和点状等图形，正文按图表种类说明插入和编辑方式。",
+      "evidence": {
+        "url": "https://help.apple.com/assets/6A89012DB8A442E3B007EABB/6A89012E7777AF96AB088730/en_US/c44b827eab7d6dade3788548c4d3192f.png",
+        "locator": "官方文档 Add a column, bar, line, area, pie, donut, or radar chart 及图表选择器截图 · 200",
+        "sha256": "64217721d24b5b98c291870dc94fd52bdece5691e430c36fc08319b07474e871",
+        "artifact": "截图",
+        "status": 200
+      },
+      "accessedAt": "2026-11-28",
+      "sourceStatus": 429
+    },
+    {
+      "id": "apple-hig-charts",
+      "role": "standard",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/charts",
+      "scope": "图形标记、尺度、坐标轴、刻度、网格、注释与信息优先级",
+      "observed": "指南以带标注的柱状图解释图表构成，并分别讨论标记选择、坐标范围及解释性标签。",
+      "evidence": {
+        "url": "https://developer.apple.com/design/human-interface-guidelines/charts.md",
+        "locator": "官方文档 Anatomy、Marks、Axes、Descriptive content 及 Apple 提供的 Markdown 正文 · 200",
+        "sha256": "0ebc57b531afb305b5e7cf1b4325fece56d10a36506b2c6258bcb0ebe7039a81",
+        "artifact": "官方 Markdown",
+        "status": "timeout"
+      },
+      "accessedAt": "2026-11-28",
+      "sourceStatus": 200
+    }
+  ]
+}

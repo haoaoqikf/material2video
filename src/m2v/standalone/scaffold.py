@@ -13,7 +13,27 @@ import uuid
 from m2v.core.assets import REPOSITORY_ROOT
 from m2v.core.errors import M2VError
 from m2v.core import security
-from m2v.type_system.catalog import catalog
+from m2v.core import style_binding
+from m2v.type_system.catalog import CATALOG_PATH, catalog
+
+
+def install_default_style(stage: Path, manifest: dict) -> None:
+    """将指定修订和发布摘要随工程保存，脱库后可核对原始默认目标。"""
+    entry = catalog().get(manifest['type'])
+    release = entry.default_style
+    style = json.loads((CATALOG_PATH.parent / release['source']).read_text(encoding='utf-8'))
+    receipt = {k: release[k] for k in ('id', 'revision', 'referenceDigest')}
+    binding = {'schemaVersion': 1, 'projectId': manifest['id'], 'type': entry.name,
+               'visualStyle': style, 'referenceDigest': receipt['referenceDigest'], 'overrides': []}
+    for relative, value in ((style_binding.RELEASE, {'type': entry.name, **receipt}),
+                            (style_binding.BINDING, binding)):
+        path = stage / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(value, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    try:
+        style_binding.load_binding(stage, manifest)
+    except (ValueError, OSError) as exc:
+        raise M2VError(f'无法固化目录参考：{exc}') from exc
 
 
 def template_files() -> list[Path]:
@@ -57,6 +77,8 @@ def create(directory: str | Path, video_type: str, *, output: dict | None = None
         adopted = {}
         for path in files:
             relative = path.relative_to(source)
+            if relative.as_posix() in (style_binding.BINDING, style_binding.RELEASE):
+                continue  # 下方按实际作品身份生成。
             target = stage / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, target)
@@ -66,6 +88,7 @@ def create(directory: str | Path, video_type: str, *, output: dict | None = None
         manifest.update(id=f'{slug[:50].rstrip("-")}-{uuid.uuid4().hex[:8]}', type=entry.name)
         manifest['output'].update(entry.initial_dimensions())
         manifest['output'].update(output or {})
+        install_default_style(stage, manifest)
         (stage / 'project.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
         for material in entry.materials:
             target = stage / material.file

@@ -7,6 +7,8 @@ import hashlib
 import json
 import re
 from pathlib import Path
+
+from . import style_binding
 from typing import Any
 
 from .errors import VideoError
@@ -101,6 +103,10 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
         validate_fps(output["fps"], "output.fps")
     from .execution import command
     command(root, data)
+    try:
+        style_binding.load_binding(root, data)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise VideoError(f"作品风格绑定无效：{exc}") from exc
     return root, data
 
 
@@ -149,6 +155,8 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
         raise VideoError("旧准备记录不能用于三类视频；请重新 prepare")
     if prepared.get("projectId") != project["id"] or prepared.get("type") != project["type"]:
         raise VideoError("准备记录与当前作品不匹配；请重新 prepare")
+    if 'file:' + style_binding.BINDING not in prepared['inputs']:
+        raise VideoError("准备缺少当前风格绑定；请重新 prepare")
     expected_fps = project_fps(root, project)
     if type(prepared.get("fps")) is not int or prepared["fps"] != expected_fps:
         raise VideoError(f"准备记录帧率与当前 {expected_fps} fps 不匹配；请重新 prepare")
@@ -181,7 +189,8 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
 
 
 def file_inputs(root: Path, project: dict[str, Any]) -> dict[str, str]:
-    inputs = {}
+    inputs = {'file:' + style_binding.BINDING: style_binding.sha256(
+        _local_reference(root, style_binding.BINDING))}
     for name, reference in project["materials"].items():
         file = _local_reference(root, reference)
         if not file.is_file():

@@ -29,7 +29,7 @@ from m2v.core.video_config import default_fps
 CATALOG_PATH = Path(__file__).with_name("catalog.json")
 
 #: 目录结构版本。字段含义变化时必须递增，并同步校验规则。
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 SUPPORTED_TYPES = frozenset({"text-motion", "data-evolution", "spatial-3d"})
 
 #: 类型名与作品 id 同规则：小写字母、数字与连字符。
@@ -66,6 +66,7 @@ class Entry:
     plan: str
     skill_guide: str
     materials: tuple[Material, ...]
+    default_style: dict[str, Any]
 
     def material_map(self) -> dict[str, str]:
         """作品契约使用的「材料名 → 默认文件名」映射。"""
@@ -164,7 +165,15 @@ def _parse_entry(raw: Any, index: int, seen: set[str]) -> Entry:
     files = [material.file for material in materials]
     if len(set(files)) != len(files):
         raise M2VError(f"类型目录 types[{name}].materials 的文件名重复：{'、'.join(files)}")
-    return Entry(name=name, materials=materials, **texts)
+    style = raw.get("defaultStyle")
+    if (not isinstance(style, dict) or set(style) != {"id", "revision", "source", "referenceDigest"}
+            or not isinstance(style["id"], str) or not _NAME_RE.fullmatch(style["id"])
+            or type(style["revision"]) is not int or style["revision"] < 1
+            or style["source"] != f"references/{style['id']}-{style['revision']}.json"
+            or not isinstance(style["referenceDigest"], str)
+            or not re.fullmatch(r"[a-f0-9]{64}", style["referenceDigest"])):
+        raise M2VError(f"类型目录 {name} 的默认风格修订记录无效")
+    return Entry(name=name, materials=materials, default_style=style, **texts)
 
 
 def _parse(data: Any) -> Catalog:

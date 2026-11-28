@@ -122,6 +122,17 @@ def test_import_registers_media_receipt_and_is_idempotent(tmp_path):
         cut = selection.select(store, document, decision='chosen', rationale='可用',
                                purpose='作品片段', operator='主代理', output_dir=tmp_path / 'out',
                                transform=Transform(fps={'num': 10, 'den': 1}))
+        from m2v.core.errors import M2VError
+        from m2v.core.style_binding import BINDING
+        binding = project / BINDING
+        original = binding.read_bytes()
+        binding.unlink()
+        with pytest.raises(M2VError, match='风格绑定'):
+            import_work.import_selection(store, project_root=project, selection_id=cut.selection.id,
+                                         asset_id='clip-one', role='color')
+        assert not (project / 'assets/materials').exists()
+        assert not store.connection.execute('SELECT 1 FROM operations').fetchone()
+        binding.write_bytes(original)
         imported = import_work.import_selection(store, project_root=project, selection_id=cut.selection.id,
                                                 asset_id='clip-one', role='color')
         assert imported.receipt.data.status == 'committed'

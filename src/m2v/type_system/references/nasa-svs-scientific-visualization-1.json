@@ -1,0 +1,54 @@
+{
+  "id": "nasa-svs-scientific-visualization",
+  "revision": 1,
+  "references": [
+    {
+      "id": "nasa-libration-longitude",
+      "role": "overall",
+      "url": "https://science.nasa.gov/resource/moon-essentials-from-nasas-scientific-visualization-studio/",
+      "scope": "全景与近景的空间层级、连续状态、材质光照及科学解说的整体完成度",
+      "observed": "经向天平动成片同时展示地月轨道全景、月球局部和带轴线的球面视图，红白位置标识随轨道状态分离又接近。",
+      "evidence": {
+        "url": "https://assets.science.nasa.gov/content/dam/science/psd/earths-moon/video-thumbs/libration_longitude_1080p30.mp4",
+        "locator": "NASA 官方经向天平动成片 · 200，定位点 00:03、00:08、00:13、00:19、00:24、00:41、01:04、01:28",
+        "sha256": "6aaef5cf5bcf00d5914b1c880d5eaab8853699c0e162d3e04f4077daca0e8f98",
+        "artifact": "原片",
+        "status": 200
+      },
+      "accessedAt": "2026-11-28",
+      "sourceStatus": 200
+    },
+    {
+      "id": "eso-s2-orbit",
+      "role": "specialist",
+      "url": "https://www.eso.org/public/videos/eso1825g/",
+      "scope": "从多轨线场景聚焦到单一轨道，保持空间锚点和动态读数归属",
+      "observed": "成片开场的密集轨道线让位给星场中央的单一椭圆，亮点沿轨道推进，左下读数同步变化。",
+      "evidence": {
+        "url": "https://cdn.eso.org/videos/medium_podcast/eso1825g.mp4",
+        "locator": "ESO 官方成片 · 200，定位点 00:01、00:05、00:10、00:15、00:20、00:27",
+        "sha256": "04113276d553c8d0503fd23c909e3012fe1e7fbc6209fcd4fd447745a812852b",
+        "artifact": "原片",
+        "status": 200
+      },
+      "accessedAt": "2026-11-28",
+      "sourceStatus": 200
+    },
+    {
+      "id": "nasa-display-standard",
+      "role": "standard",
+      "url": "https://www.nasa.gov/reference/appendix-f-vol-2/",
+      "scope": "技术标签、读数与单位归属，以及结构示意的可辨性",
+      "observed": "规范在 Labels、Numbers 和 Schematics 中分别说明标签靠近数据、读数显示相应单位、结构对象具备可识别标记。",
+      "evidence": {
+        "url": "https://www.nasa.gov/reference/appendix-f-vol-2/",
+        "locator": "官方文档 Appendix F 的 Display Components 相关小节。适用范围为显示可读性语义。",
+        "sha256": "488c51138ec635336d6b87ef68b9e97868907e9168ae67c91894114612ef1ace",
+        "artifact": "原页响应",
+        "status": 200
+      },
+      "accessedAt": "2026-11-28",
+      "sourceStatus": 200
+    }
+  ]
+}
