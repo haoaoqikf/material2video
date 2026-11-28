@@ -35,4 +35,21 @@ describe('continuous journey camera', () => {
       expect([...after.position.toArray(), ...after.quaternion.toArray(), after.fov].every(Number.isFinite)).toBe(true);
     }
   });
+
+  it('keeps clear space between Ceres and Jupiter throughout the Ceres narration', () => {
+    const flight = makeFlight();
+    const {startFrame, endFrame} = config.segmentWindows['ceres-line'];
+    const ceres = positionOf('ceres');
+    const jupiter = positionOf('jupiter');
+    for (let frame = startFrame; frame < endFrame; frame++) {
+      const {position} = flight(frame);
+      const foreground = ceres.clone().sub(position);
+      const background = jupiter.clone().sub(position);
+      const gap = foreground.angleTo(background)
+        - Math.asin(LAYOUT.ceres.radius / foreground.length())
+        - Math.asin(LAYOUT.jupiter.radius / background.length());
+      // 手机宽度也要看见间隙；原镜头中两个球面的视角曾重叠。
+      expect(gap).toBeGreaterThan(2 * Math.PI / 180);
+    }
+  });
 });

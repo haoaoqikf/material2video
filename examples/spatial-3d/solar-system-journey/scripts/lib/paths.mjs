@@ -349,6 +349,8 @@ export function createProposal({THREE: three, LAYOUT, POSITIONS}) {
   // 太阳保持已核对的俯冲入口；月球抬高以避开近邻地球。
   arcs.sun = [[3.1, 7.2, 3.5], [5, 6.5, 3.5], [6.2, 5.8, 3]];
   arcs.moon = arcs.moon.map(point => [point[0], point[1] + 0.8, point[2]]);
+  // 从黄道面稍上方看谷神星，使背景木星与谷神星的球缘在讲述期间始终分开。
+  arcs.ceres = arcs.ceres.map(([x, y, z]) => [x, y + 0.25, z]);
   const radialView = (radius, angle, height) => [Math.cos(angle) * radius, height, Math.sin(angle) * radius];
   // 外层观察任务是连续拉开范围，不再绕一个无实体锚点停留后才猛拉远。
   arcs.heliopause = [[235, 7.35, 42], [300, 7.40, 65], [370, 7.45, 100], [430, 7.50, 130]]
