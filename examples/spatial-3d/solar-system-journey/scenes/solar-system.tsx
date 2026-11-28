@@ -69,8 +69,9 @@ function FlightCamera({shots, windows, frame, look, ceresFocus}: {
   return null;
 }
 
-function World({textures, active, seconds, outerView, ceresFocus}: {
-  textures: Textures; active: string; seconds: number; outerView: number; ceresFocus: number;
+function World({textures, active, seconds, outerView, edgeApproach, ceresFocus}: {
+  textures: Textures; active: string; seconds: number; outerView: number; edgeApproach: number;
+  ceresFocus: number;
 }) {
   const clock = {current: {seconds}};
   const structures = journey.structures;
@@ -94,7 +95,7 @@ function World({textures, active, seconds, outerView, ceresFocus}: {
       color="#c5bba1" size={0.065} spin={0.002} opacity={0.65}/>
     <ParticleBelt count={1800} {...structures.kuiper} seed="kuiper"
       color={outerView === 0 ? '#9fb6cf' : new THREE.Color('#9fb6cf').lerp(new THREE.Color('#f1d5ab'), outerView).getStyle()}
-      size={THREE.MathUtils.lerp(0.11, 6, outerView)} spin={0.001}
+      size={THREE.MathUtils.lerp(0.11, 6, outerView) + 2.2 * edgeApproach} spin={0.001}
       opacity={THREE.MathUtils.lerp(0.6, 0.92, outerView)}/>
     <OortCloud count={7200} {...structures.oort} seed="oort" color={BODIES.oort.color} size={6.6}
       bubble={structures.heliopause.radius} bubbleColor={BODIES.heliopause.color}
@@ -114,13 +115,18 @@ export const SolarSystem = memo(function SolarSystem({textures, shots, look, act
   // 两层各自讲完后，尾镜才点亮同一组扁带粒子，让观众读出完整的空间关系。
   const tailStart = shots.at(-1)?.startFrame ?? windows['oort-line'].endFrame;
   const outerView = THREE.MathUtils.smoothstep(frame, tailStart, tailStart + 120);
+  // 壳缘入画前以冷色柯伊伯带维持方向感。它退入背景后，蓝壳名称才出现。
+  const edgeStart = windows['heliopause-line'].startFrame;
+  const edgeApproach = THREE.MathUtils.smoothstep(frame, edgeStart - 75, edgeStart + 24)
+    * (1 - THREE.MathUtils.smoothstep(frame, edgeStart + 90, edgeStart + 138));
   const {startFrame, endFrame} = windows['ceres-line'];
   const ceresFocus = THREE.MathUtils.smoothstep(frame, startFrame - 30, startFrame + 15)
     * (1 - THREE.MathUtils.smoothstep(frame, endFrame - 12, endFrame + 42));
   return <SpaceStage look={look} shots={shots} fov={40} background="#02050a"
     starCount={650} starSeed="solar-system">
     <FlightCamera shots={shots} windows={windows} frame={frame} look={look} ceresFocus={ceresFocus}/>
-    <World textures={textures} active={active} seconds={seconds} outerView={outerView} ceresFocus={ceresFocus}/>
+    <World textures={textures} active={active} seconds={seconds} outerView={outerView}
+      edgeApproach={edgeApproach} ceresFocus={ceresFocus}/>
     <FirstPaint textures={textures} onReady={onReady}/>
   </SpaceStage>;
 });
