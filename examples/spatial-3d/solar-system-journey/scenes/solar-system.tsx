@@ -96,7 +96,7 @@ function World({textures, active, seconds, outerView, ceresFocus}: {
       color={outerView === 0 ? '#9fb6cf' : new THREE.Color('#9fb6cf').lerp(new THREE.Color('#f1d5ab'), outerView).getStyle()}
       size={THREE.MathUtils.lerp(0.11, 6, outerView)} spin={0.001}
       opacity={THREE.MathUtils.lerp(0.6, 0.92, outerView)}/>
-    <OortCloud count={7200} {...structures.oort} seed="oort" color={BODIES.oort.color} size={5.2}
+    <OortCloud count={7200} {...structures.oort} seed="oort" color={BODIES.oort.color} size={6.6}
       bubble={structures.heliopause.radius} bubbleColor={BODIES.heliopause.color}
       bubbleOpacity={structures.heliopause.opacity}/>
   </>;
@@ -110,11 +110,11 @@ export const SolarSystem = memo(function SolarSystem({textures, shots, look, act
   onReady: () => void;
 }) {
   // 逐主体镜头使用稳定目标表，避免旧固定帧焦点切换随配音变化失效。
-  // 蓝色边界先随回望镜头进入画面，随后点亮同一组扁带粒子。
-  const outerView = THREE.MathUtils.smoothstep(seconds * fps,
-    windows['heliopause-line'].endFrame, windows['oort-line'].startFrame);
-  const {startFrame, endFrame} = windows['ceres-line'];
   const frame = seconds * fps;
+  // 两层各自讲完后，尾镜才点亮同一组扁带粒子，让观众读出完整的空间关系。
+  const tailStart = shots.at(-1)?.startFrame ?? windows['oort-line'].endFrame;
+  const outerView = THREE.MathUtils.smoothstep(frame, tailStart, tailStart + 120);
+  const {startFrame, endFrame} = windows['ceres-line'];
   const ceresFocus = THREE.MathUtils.smoothstep(frame, startFrame - 30, startFrame + 15)
     * (1 - THREE.MathUtils.smoothstep(frame, endFrame - 12, endFrame + 42));
   return <SpaceStage look={look} shots={shots} fov={40} background="#02050a"

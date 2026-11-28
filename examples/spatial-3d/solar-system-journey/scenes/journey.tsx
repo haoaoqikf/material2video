@@ -70,7 +70,7 @@ export default function Journey(config: CodeSceneProps) {
       opacity: panel, textShadow: '0 2px 24px #02050a'}}>
       <div style={{fontSize: 20, letterSpacing: '0.2em', color: '#bba887'}}>{body.english}</div>
       <div style={{fontSize: outer ? 64 : 82, fontWeight: 350, lineHeight: 1.3, marginTop: 16}}>{body.name}</div>
-      <div style={{width: 48, height: outer ? 3 : 1, marginTop: 22,
+      <div style={{width: outer ? 64 : 48, height: outer ? 5 : 1, marginTop: 22,
         background: active === 'heliopause' ? body.color : active === 'oort'
           ? `repeating-linear-gradient(90deg, ${body.color} 0 4px, transparent 4px 9px)` : '#cbb28b'}}/>
       <div style={{fontSize: outer ? 34 : 36, lineHeight: 1.65, marginTop: 22, color: '#dfd8cc'}}>
@@ -78,12 +78,15 @@ export default function Journey(config: CodeSceneProps) {
       </div>
       {active === 'oort' && <div style={{fontSize: 20, marginTop: 16, color: '#a7b5c2'}}>推测性结构 · 艺术示意</div>}
     </div>
-    <div style={{position: 'absolute', left: 88, bottom: 108, fontSize: 20,
-      color: '#8795a2', opacity: credits}}>三维艺术示意 · 大小与距离分别压缩 · 非实时位置</div>
+    <div style={{position: 'absolute', left: 88, bottom: 108, fontSize: 40,
+      color: '#b4bdc6', opacity: credits}}>
+      大小与距离分别压缩 · 非实时位置
+      <span style={{fontSize: 20, marginLeft: 20, color: '#8795a2'}}>三维艺术示意</span>
+    </div>
     <div style={{position: 'absolute', left: 88, bottom: 48, fontSize: 32,
       color: '#b8c2cc', opacity: credits}}>NASA / JPL / USGS · Solar System Scope（CC BY 4.0）</div>
     {tail && frame >= tail.startFrame && <div style={{position: 'absolute', left: 88, top: 185,
-      fontSize: 44, color: '#ddd9d0', opacity: clamp((frame - tail.startFrame) / 48)}}>
+      fontSize: 56, color: '#ddd9d0', opacity: clamp((frame - tail.startFrame) / 48)}}>
       回望太阳，只剩一个亮点
     </div>}
   </div>;
