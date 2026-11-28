@@ -27,7 +27,7 @@ def signature(root, project, pack_path, pack_sha, *, historical=False):
     return dict(round=req['round'], purpose=req['purpose'], blindReason=req.get('blindReason'),
                 fps=req['fps'], displaySizes=sorted(req['displaySizes']),
                 sceneIds=req['sceneIds'], sources=samples.scope_sources(root, req),
-                conditions=req.get('conditions', []), references=binding['references'],
+                conditions=req.get('conditions', []), references=binding['references'], style=binding.get('style'),
                 items=[{**{k: item[k] for k in ('id', 'window', 'dynamic')},
                         'sha256': media['sha256']}
                        for item, media in zip(req['items'], binding['media'], strict=True)],

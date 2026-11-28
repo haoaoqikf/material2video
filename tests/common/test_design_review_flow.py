@@ -127,8 +127,6 @@ def test_final_is_retired_and_process_recheck_preserves_fps(work):
              'fps': 30, 'displaySizes': [393, 640], 'references': [], 'conditions': [],
              'sources': [], 'sceneIds': [], 'items': [{'id': 'motion', 'window': [0, 90], 'dynamic': True}]}
     assert not issues.covers(scope, {**scope, 'fps': 60})
-    assert not reviews.has_visual_target({'references': ['sound.wav', 'music.mp3']})
-    assert reviews.has_visual_target({'references': ['sound.wav', 'actual-frame.png']})
 
 
 def test_cli_builds_sample_task_and_derives_comparison_without_request_copy(native, capsys):

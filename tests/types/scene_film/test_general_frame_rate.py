@@ -13,7 +13,7 @@ from playwright.sync_api import sync_playwright
 
 from m2v.cli import main
 from m2v.core.errors import M2VError
-from m2v.core.project import load_current_prepared, load_project, save_prepared
+from m2v.core.project import file_inputs, load_current_prepared, load_project, save_prepared
 from m2v.core.video_config import storyboard_fps
 from m2v.engine import lookdev
 from m2v.types.scene_film import adapter, explainer, soundtrack
@@ -119,7 +119,7 @@ def test_soundtrack_offsets_use_actual_fps(tmp_path, monkeypatch, fps):
 def test_prepared_invalid_after_frame_rate_change(tmp_path):
     root, manifest = project(tmp_path, board(fps=60))
     save_prepared(root, project=manifest, composition_id="ArticleExplainer", props={}, width=1920, height=1080,
-                  fps=60, duration_in_frames=60, inputs={})
+                  fps=60, duration_in_frames=60, inputs=file_inputs(root, manifest))
     manifest["output"]["fps"] = 30
     data = board(fps=30)
     (root / "storyboard.json").write_text(json.dumps(data), encoding="utf-8")

@@ -1,7 +1,7 @@
 schema: spec-driven
 
 context: |
-  项目：material2video，使用三类视频、统一分镜与代码场景制作链路。类型仅有 text-motion（图文动效）、data-evolution（数据演化）、spatial-3d（三维空间）。地图轨迹和情境叙事是表现手法，不设类型。作品目录为 videos/<type>/<slug>，示例目录为 examples/<type>/<slug>，没有类别、general、专项类型或风格注册表。
+  项目：material2video，使用三类视频、统一分镜与代码场景制作链路。类型仅有 text-motion（图文动效）、data-evolution（数据演化）、spatial-3d（三维空间）。地图轨迹和情境叙事是表现手法，不设类型。作品目录为 videos/<type>/<slug>，示例目录为 examples/<type>/<slug>，没有类别、general、专项类型。类型目录发布带修订号的默认视觉参考集，工程在 design/style-binding.json 固化目标和授权范围。
   作品使用独立工程 v3（project schemaVersion=3）和分镜 v9。每幕是作品 scenes/ 下的本地 React 代码场景，三类采用 SceneFilm 契约及作品自有的准备、预演、渲染和技术检查入口，主项目可选管理制作证据。金融行情与投资计算、建筑构件与步骤、汽车模型与镜头作为分镜结构化来源供场景引用。旧类型、风格字段、旧材料和准备记录明确拒绝，不提供迁移入口。
   主项目 Python 制作工具位于 src/m2v/：core（作品契约与指纹）、engine（通用媒体、音频、字幕、素材与本地委托工具）、type_system（三类目录与注册）、types/scene_film（统一分镜校验与委托）、types/financial、types/building_construction、types/vehicle_showcase（结构化来源校验与数据）、production（媒体评审、问题与状态）、reference（外部参考）、cli（统一入口）。构建、采集、渲染、合成与 QA 实现只在模板与作品运行时；web/src/scene-film/ 与 web/src/code-scene/ 为组件参考和起步源码；作品运行时、依赖和字体归工程自有，采用的源码及递归依赖须进入工程，运行不依赖主项目。作品专属代码在 scenes/ 下。Skill 记录创作指导和参考契约。
   技术栈：Python（类型校验与渲染编排）、React 19 + TypeScript + Remotion（画面 composition），

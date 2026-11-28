@@ -10,7 +10,7 @@ from pathlib import Path
 
 from m2v.core.delivery import digest, outputs
 from m2v.core.errors import M2VError
-from . import ledger, dependencies, media_evidence, review_blobs
+from . import ledger, dependencies, media_evidence, review_blobs, style_review
 from .model import (
     VERSION,
     ROUNDS,
@@ -31,11 +31,6 @@ MEDIA = {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm", ".wav", ".mp3"}
 VIDEO = {".mp4", ".webm"}
 IMAGES = {".png", ".jpg", ".jpeg", ".webp"}
 logger = logging.getLogger(__name__)
-
-
-def has_visual_target(request: dict) -> bool:
-    return any(isinstance(path, str) and Path(path).suffix.lower() in IMAGES | VIDEO
-               for path in request.get('references', []))
 
 
 def build_manifest(
@@ -73,7 +68,7 @@ def validate_request(request):
     fields(
         request,
         {"version", "round", "purpose", "fps", "items", "sources", "sceneIds", "displaySizes"},
-        {"reviewType", "blindId", "references", "conditions", "sampleStep", "blindReason", "film"},
+        {"reviewType", "blindId", "references", "referenceUses", "conditions", "sampleStep", "blindReason", "film"},
     )
     if (
         request["version"] != VERSION
@@ -92,8 +87,7 @@ def validate_request(request):
     if review_type == "process":
         if purpose != "process" or request.get("blindId") is not None or request.get("blindReason"):
             raise M2VError("过程直接对照不得伪造盲看身份或混用其他用途")
-        if not request.get("references") or not request.get("conditions"):
-            raise M2VError("过程对照必须提供实际参考和中性 conditions")
+
     elif purpose == "process":
         text(request.get("blindReason"))
     elif "blindReason" in request:
@@ -121,8 +115,7 @@ def validate_request(request):
     # 只验证已声明目标的配套输入；研究深度与效果兑现仍须实际观察。
     if request.get("references") and not request.get("conditions"):
         raise M2VError("references 目标媒体必须配套非空 conditions，说明中性可观察采用特征")
-    if request.get("film") and not has_visual_target(request):
-        raise M2VError("正式评审须登记实际视觉参考")
+
     seen = set()
     for item in request["items"]:
         fields(item, {"id", "path", "window", "dynamic"})
@@ -187,8 +180,7 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
             or prior_binding["request"]["items"] != request["items"]
         ):
             raise M2VError("对照必须复用同轮盲看的相同媒体、来源和观察范围")
-        if not request.get("references") and not request.get("conditions"):
-            raise M2VError("对照包缺少目标媒体或中性原条件")
+
     elif blind_id is not None:
         raise M2VError("盲看不能引用旧报告")
     else:
@@ -293,7 +285,9 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
             }
         )
     if review_type in ("consistency", "process"):
-        write(target / "conditions.json", request.get("conditions", []))
+        conditions = list(dict.fromkeys(request.get("conditions", [])))
+        write(target / "conditions.json", conditions)
+        style_review.supply(root, target, binding['style'], conditions)
         for index, reference in enumerate(request.get("references", [])):
             source = local(base, reference)
             if source.suffix.lower() not in MEDIA:
@@ -335,8 +329,7 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
             "对照实际目标的整体效果及采用特征，记录兑现情况、主要差距、收益/损失及证据限制。"
             "局部特征齐全不等于整体品质成立，相对备选或旧版更好也不等于达到目标；"
             "不能用理解通过替代视觉表现或代表性。\n"
-            if request.get("references") else
-            "本包仅核对中性条件，没有目标媒体；不得据此验证未提供的风格目标。\n"
+            "按 style-references.json 定位各窗口的实际整体、专项与规范，缺少原件或必要条件的范围记录 insufficient。\n"
         )
         if request["purpose"] == "keyframe":
             questions += (
@@ -382,9 +375,7 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
         review_type=review_type,
         purpose=request["purpose"],
         blind_id=blind_id,
-        requires_comparison=review_type != "process" and bool(
-            request.get("references") or request.get("conditions")
-        ),
+        requires_comparison=review_type == "blind",
     )
     write(target / "manifest.json", pack)
     private_path = ledger.directory(root) / "packages" / f"{rid}.json"
@@ -529,7 +520,8 @@ def still_current_film_items(root, manifest, report_id):
     binding = private["binding"]
     request = private["request"]
     film = binding.get("film")
-    if not film or ledger.sources(root, request) != binding["sources"]:
+    if (not film or ledger.sources(root, request) != binding["sources"]
+            or binding.get('style') != style_review.selection(root, manifest, request, film)):
         return None
     samples.validate_current_sources(root, manifest, request)
     retained = {}
@@ -711,6 +703,20 @@ def import_report(root, manifest, path):
             raise M2VError("不能把理解、表现或代表性不足合并成通过")
         if item["adoption"] != adoption(item["status"]):
             raise M2VError("每个观察项必须给出与状态一致的明确采用结论")
+    seen_inputs = {local(outputs(root), p, exists=False).relative_to(pack_dir).as_posix()
+                   for p in invocation['inputPaths']}
+    for item in report['coverage']:
+        if item['status'] == 'insufficient':
+            continue
+        candidate = by_id[item['id']]
+        display_paths = {path for frame in candidate['sequence'] for path in frame['displayPaths']}
+        # 过程也允许评审者从完整视频解码并量测。
+        video_read = candidate['dynamic'] and candidate['path'] in seen_inputs
+        if not video_read and not display_paths <= seen_inputs:
+            raise M2VError('观察项缺少候选实际画面或登记观看尺寸的读取证据，应记录 insufficient')
+    if pack['reviewType'] in ('process', 'consistency'):
+        index = read(local(pack_dir, 'style-references.json'))
+        style_review.verify_coverage(index, report, seen_inputs, pack)
     states = [x["status"] for x in report["coverage"]]
     expected = "fail" if "fail" in states else "insufficient" if "insufficient" in states else "pass"
     if seen != set(by_id) or report["verdict"] != expected:
@@ -721,7 +727,7 @@ def import_report(root, manifest, path):
         cycleId=ledger.cycle(root)["cycleId"],
         requiresComparison=pack["requiresComparison"],
         purpose=pack["purpose"],
-        hasVisualTarget=has_visual_target(private["request"]),
+        hasVisualTarget=bool(private["binding"]["style"]["references"]),
     )
     target = ledger.directory(root) / "reports" / f"{rid}.json"
     write(target, report)

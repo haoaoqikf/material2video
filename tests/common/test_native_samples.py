@@ -10,13 +10,14 @@ from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_project
 from m2v.production import dependencies, issues, ledger, media_evidence, reviews, samples
 from m2v.production.storage import read, write
-from common.test_media_reviews import report
+from common.test_media_reviews import install_test_style, report
 
 
 @pytest.fixture
 def native(tmp_path, monkeypatch):
     root = tmp_path / 'work'
     create_project(root, 'text-motion', {'storyboard': 'storyboard.json'})
+    install_test_style(root)
     project = load_project(root)[1]
     (root / 'scenes').mkdir(exist_ok=True)
     (root / 'scenes/main.tsx').write_text('export default 1;', encoding='utf-8')
@@ -110,13 +111,19 @@ def test_trial_keyframes_use_art_direction_and_keep_targets_in_comparison(native
 
 
 @pytest.mark.parametrize('options', [dict(verdict='fail'), dict(verdict='insufficient'),
-                                     dict(isolation='self-review'), dict(refs=False)])
+                                     dict(isolation='self-review')])
 def test_incomplete_or_nonindependent_review_cannot_deliver(native, options):
     root, project, identity = native
     args = pair(native, **options)
     with pytest.raises(M2VError):
         samples.deliver(root, project, identity, **args)
     assert not (outputs(root) / 'sample-deliveries' / identity).exists()
+
+
+def test_default_reference_supports_delivery_without_extra_media(native):
+    root, project, identity = native
+    pair_args = pair(native, refs=False)
+    assert samples.deliver(root, project, identity, **pair_args)['sampleId'] == identity
 
 
 @pytest.mark.parametrize('change', ['source', 'artifact', 'receipt', 'cycle', 'project'])

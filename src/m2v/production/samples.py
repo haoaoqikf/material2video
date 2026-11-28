@@ -176,7 +176,7 @@ def deliver(root: Path, project: dict, identity: str, *, blind_id: str, comparis
                 or f'outputs/samples/{identity}/capture.json' not in request['sources']
                 or value['entry'] not in request['sources']
                 or not {value['width'], 393}.issubset(request['displaySizes'])
-                or not request.get('references') or not request.get('conditions')):
+                or not request.get('conditions')):
             raise M2VError('评审未覆盖本次同源关键帧、来源或实际目标参考')
     if any(item['required'] and item['status'] != 'closed'
            for item in issues.load(root, required=True, active_only=True)):
@@ -213,16 +213,12 @@ def deliver(root: Path, project: dict, identity: str, *, blind_id: str, comparis
 def review(root: Path, project: dict, identity: str, *, targets: dict) -> Path:
     """从当前凭据派生完整请求，作者只提供实际目标与必要采用条件。"""
     from . import reviews
-    fields(targets, {'references', 'conditions'})
+    fields(targets, {'references', 'conditions'}, {'referenceUses', 'sceneIds'})
     value, _ = load(root, project, identity)
     request = {'version': REVIEW_VERSION, 'round': 'trial', 'purpose': 'keyframe', 'fps': value['fps'],
                'items': review_items(value), 'sceneIds': [],
                'sources': [f'outputs/samples/{identity}/capture.json', value['entry']],
                'displaySizes': sorted({value['width'], 393}), **targets}
-    if not targets['references'] or not targets['conditions']:
-        raise M2VError('正式样品审核需要实际参考与中性条件')
-    if not reviews.has_visual_target(request):
-        raise M2VError('关键帧需要实际视觉参考，音频不能代替视觉品质标杆')
     return reviews.package(root, project, request)
 
 

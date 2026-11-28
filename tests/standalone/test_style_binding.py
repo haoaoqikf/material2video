@@ -37,7 +37,7 @@ def test_published_revision_survives_catalog_change(tmp_path, kind, monkeypatch)
 
 
 @pytest.mark.parametrize('problem', ['missing', 'old', 'digest', 'authorization', 'escape',
-                                    'unknown-scene', 'conflict', 'snapshot', 'role'])
+                                    'unknown-scene', 'conflict', 'snapshot', 'role', 'self-reference'])
 def test_both_loaders_reject_invalid_binding(work, problem):
     root, manifest = work
     path = root/style.BINDING
@@ -60,6 +60,8 @@ def test_both_loaders_reject_invalid_binding(work, problem):
             target['references'][0]['scope'] += 'changed'
         elif problem == 'authorization':
             override['authorization']['quote'] = '未授权'
+        elif problem == 'self-reference':
+            override['authorization']['source'] = style.BINDING
         elif problem == 'escape':
             override['authorization']['source'] = '../authorization.txt'
         elif problem == 'unknown-scene':

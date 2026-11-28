@@ -2,6 +2,14 @@
 
 审核职责与采用规则见[评审政策](review-contract.md)，隔离执行见[独立评审](subagent-review.md)。本页只维护命令、字段、摘要及失败关闭的技术约束。
 
+## 参考修订和证据
+
+作品 `design/style-binding.json` 固定参考条目、版本、用途与证据位置。用户明确指定新目标后，在 `overrides` 登记 `target`、`referenceDigest`、`authorization`（`quote`、含时区的 `at` 与工程内原件 `source`）和 `scope`。`scenes` 取 `"all"` 或已有场景 ID 数组，`uses` 取 `"all"` 或被替换的默认参考条目 ID 数组。全片与逐场范围互斥。已登记失败的目标按改靶入口保留原结论。
+
+正式时间窗从准备时间轴确定适用场景。试制可在请求的 `sceneIds` 登记范围。可选 `referenceUses` 按观察项 ID 指定适用的参考条目 ID 数组，整体标杆始终参与。请求的 `conditions` 写本窗口和实际观看尺寸下要观察的效果，`references` 可补充本片专项媒体。默认参考只在盲审封存后的同轮对照或直接过程对照中提供。按 `style-references.json` 查适用窗口、角色及原件；同一原件只读一次，并在调用记录登记实际读取路径。
+
+可将来自同一来源、逐字节匹配证据 SHA-256 的文件放入工程 `outputs/style-evidence/<sha256>` 供离线取证。带有显式快照的参考集用 `snapshot` 按条目 ID 登记工程内 `path` 和 `sha256`。制作管理端优先取已核验的本地证据，缺件时在对照取证阶段尝试原网址；缺证或缺少必要观察条件的项登记 `insufficient`。缺少默认绑定的旧通过不能授权当前交付。
+
 ## 命令与周期
 
 ```powershell
@@ -36,7 +44,7 @@ conditions 列出中性原条件，不填写设计理由、标准答案、推荐
 
 `dynamic`标识编码视频媒体，不自动承诺运动。静止编码仅验证静态表现与一致性，不据此宣称动态或全片基线；动态目标的代表性仍须完整过程的有序帧、帧差/场景切分与信号量测，未提供的运动、停留时间、声音与正文保持未验证。
 
-purpose 为 keyframe 或 process，round 为 trial。原生试制样品仅有关键帧评审。正式取证见下节。reviewType 为 blind/consistency/process，process 为直接过程对照，必须有实际 references 与 conditions，不填 blindId。正式过程例外 blind/consistency 须登记非空 blindReason。
+purpose 为 keyframe 或 process，round 为 trial。原生试制样品仅有关键帧评审。正式取证见下节。reviewType 为 blind/consistency/process，process 为直接过程对照，对照取证从绑定提供实际参考，references 只补充本片专项媒体。conditions 写观察条件，缺证时记录 insufficient；不填 blindId。正式过程例外 blind/consistency 须登记非空 blindReason。
 
 每份报告顶层和 coverage 项均须 adoption=adopt/reject，只有 pass 对应 adopt，fail/insufficient 对应 reject；整体 verdict 必须与覆盖项最严重状态一致。
 

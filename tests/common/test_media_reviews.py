@@ -16,10 +16,30 @@ from m2v.production import ledger, reviews, issues
 from m2v.production.storage import read, write, receipt, local, locked
 
 
+def install_test_style(root):
+    """隔离测试只使用生成的本地参考原件，不访问外部参考站点。"""
+    from m2v.core import style_binding as style
+    path = root/style.BINDING
+    data = read(path)
+    visual = data['visualStyle']
+    image = root/'design/reference-test.png'
+    Image.new('RGB', (20, 16), 'green').save(image)
+    sha = digest(image)
+    for ref in visual['references']:
+        ref['evidence']['sha256'] = sha
+    visual['snapshot'] = {ref['id']: {'path': 'design/reference-test.png', 'sha256': sha}
+                          for ref in visual['references']}
+    data['referenceDigest'] = style.fingerprint(visual)
+    write(path, data)
+    release = read(root/style.RELEASE)
+    write(root/style.RELEASE, {**release, 'referenceDigest': data['referenceDigest']})
+
+
 @pytest.fixture
 def work(tmp_path, monkeypatch):
     root = tmp_path / "work"
     create_project(root, "text-motion", {"storyboard": "storyboard.json"})
+    install_test_style(root)
     (root / "storyboard.json").unlink(missing_ok=True)
     (root / "DESIGN.md").unlink(missing_ok=True)
     manifest = load_project(root)[1]
@@ -188,7 +208,8 @@ def report(
             freshContext=True,
             startedAt=now.isoformat(),
             completedAt=(now + timedelta(seconds=1)).isoformat(),
-            inputPaths=[(pack / "manifest.json").relative_to(outputs(root)).as_posix()],
+            inputPaths=[(pack / name).relative_to(outputs(root)).as_posix()
+                        for name in ["manifest.json", *(f["path"] for f in data["files"])]],
             readReportIds=[data["blindId"]] if data["reviewType"] == "consistency" else [],
         ),
     )
@@ -229,10 +250,16 @@ def report(
     return target
 
 
-def submit(work, **kwargs):
+def submit(work, *, compare=False, req=None, **kwargs):
     root, manifest = work
-    pack = reviews.package(root, manifest, request())
-    return reviews.import_report(root, manifest, report(work, pack, **kwargs))
+    req = dict(req or request())
+    req.setdefault("conditions", ["当前尺寸能分辨主体与背景"])
+    pack = reviews.package(root, manifest, req)
+    first = reviews.import_report(root, manifest, report(work, pack, **kwargs))
+    if compare:
+        paired = reviews.compare(root, manifest, first["id"])
+        reviews.import_report(root, manifest, report(work, paired, **kwargs))
+    return first
 
 
 def submit_visual(work, *, who):
@@ -247,7 +274,7 @@ def submit_visual(work, *, who):
 def test_local_trial_without_design_or_board_and_readonly_state(work):
     root, manifest = work
     assert not (root / "DESIGN.md").exists() and not (root / "storyboard.json").exists()
-    accepted = submit(work)
+    accepted = submit(work, compare=True)
     before = {p: p.read_bytes() for p in root.rglob("*") if p.is_file()}
     result = ledger.status(root, manifest)
     assert (
@@ -260,12 +287,13 @@ def test_local_trial_without_design_or_board_and_readonly_state(work):
 
 def test_source_scope_reuse_and_private_binding_integrity(work):
     root, manifest = work
-    submit(work)
+    accepted = submit(work, compare=True)
     (root / "unrelated.tsx").write_text("changed", encoding="utf-8")
     assert ledger.status(root, manifest)["trial"][0]["status"] == "pass"
     (root / "core.tsx").write_text("changed", encoding="utf-8")
     assert ledger.status(root, manifest)["trial"][0]["status"] == "stale"
-    private = next((ledger.directory(root) / "packages").glob("*.json"))
+    blind = read(ledger.directory(root) / "reports" / (accepted["id"] + ".json"))
+    private = ledger.directory(root) / "packages" / (Path(blind["packPath"]).parent.name + ".json")
     data = read(private)
     data["binding"] = ledger.binding(root, manifest, data["request"])
     write(private, data)
@@ -285,8 +313,7 @@ def test_scene_dependencies_and_global_output_change(work):
     )
     r = request()
     r.update(sources=[], sceneIds=["one"])
-    pack = reviews.package(root, manifest, r)
-    reviews.import_report(root, manifest, report(work, pack))
+    submit(work, req=r, compare=True)
     (root / "unrelated.tsx").write_text("changed", encoding="utf-8")
     assert ledger.status(root, manifest)["trial"][0]["status"] == "pass"
     value = read(root / "project.json")
@@ -362,7 +389,7 @@ def test_failed_review_close_reopen_and_cycle_isolation(work):
     )
     with pytest.raises(M2VError, match="独立通过"):
         issues.update(root, problem)
-    accepted = submit(work, who="fresh")
+    accepted = submit(work, who="fresh", compare=True)
     problem["closureReportId"] = accepted["id"]
     issues.update(root, problem)
     assert issues.load(root)[0]["status"] == "closed"
@@ -515,10 +542,11 @@ def test_real_video_window_frames_and_metadata(tmp_path):
     from m2v.production.model import ffmpeg
 
     root = tmp_path / "work"
-    root.mkdir()
+    create_project(root, "text-motion", {"storyboard": "storyboard.json"})
+    install_test_style(root)
+    manifest = load_project(root)[1]
     out = outputs(root)
     out.mkdir()
-    manifest = {"id": "work", "type": "text-motion"}
     ledger.start(root, manifest)
     ffmpeg(
         [
@@ -554,6 +582,13 @@ def test_real_video_window_frames_and_metadata(tmp_path):
     assert not list((pack / "evidence-0000").glob("*-160.png"))
     assert ledger.evidence_valid_at(pack, data["files"])
     ffmpeg(["-i", str(pack / item["path"]), "-map", "0:a:0", "-f", "null", "-"])
+    direct = {key: value for key, value in r.items() if key not in ("reviewType", "blindReason")}
+    direct["conditions"] = ["核对当前时窗中测试图形的位置变化"]
+    process = reviews.package(root, manifest, direct)
+    current = read(process / "manifest.json")
+    assert current["reviewType"] == "process" and current["blindId"] is None
+    assert read(process / "style-references.json")["conditionsAvailable"]
+    assert reviews.import_report(root, manifest, report((root, manifest), process))["verdict"] == "pass"
     r["items"][0]["window"] = [0, 60]
     with pytest.raises(M2VError, match="完整观察"):
         reviews.package(root, manifest, r)
@@ -562,10 +597,11 @@ def test_real_video_window_frames_and_metadata(tmp_path):
 @pytest.mark.media
 def test_real_image_metadata_removed(tmp_path):
     root = tmp_path / "work"
-    root.mkdir()
+    create_project(root, "text-motion", {"storyboard": "storyboard.json"})
+    install_test_style(root)
+    manifest = load_project(root)[1]
     out = outputs(root)
     out.mkdir()
-    manifest = {"id": "work"}
     ledger.start(root, manifest)
     metadata = PngImagePlugin.PngInfo()
     metadata.add_text("Author", "private-author")
@@ -596,7 +632,7 @@ def test_closed_problem_reopens_when_its_evidence_changes(work):
     root, manifest = work
     submit(work, verdict="fail")
     problem = issues.load(root)[0]
-    accepted = submit(work, who="fresh")
+    accepted = submit(work, who="fresh", compare=True)
     problem.update(
         status="closed", cause="implementation", closureReportId=accepted["id"]
     )
@@ -626,7 +662,7 @@ def test_issue_read_deduplicates_proof_but_rechecks_each_independent_read(work, 
     root, _ = work
     submit(work, verdict="fail", who="first-failure")
     submit(work, verdict="fail", who="second-failure")
-    accepted = submit(work, who="fresh")
+    accepted = submit(work, who="fresh", compare=True)
     for problem in issues.load(root):
         problem.update(status="closed", cause="implementation", closureReportId=accepted["id"])
         issues.update(root, problem)
@@ -640,16 +676,17 @@ def test_issue_read_deduplicates_proof_but_rechecks_each_independent_read(work, 
 
     monkeypatch.setattr(reviews, "_current_report", checked)
     assert {item["status"] for item in issues.load(root)} == {"closed"}
-    assert calls == [accepted["id"]]
+    pair = calls.copy()
+    assert len(pair) == 2 and pair[0] == accepted["id"] and pair[0] != pair[1]
     source.write_text("changed", encoding="utf-8")
     assert {item["status"] for item in issues.load(root)} == {"open"}
-    assert calls == [accepted["id"]] * 2
+    assert calls == pair + [accepted["id"]]
     # 失败缓存也只属于上次读取；恢复来源后能够重验通过，问题原记录不被投影改写。
     source.write_text(original_source, encoding="utf-8")
     with ledger.query():
         assert {item["status"] for item in issues.load(root)} == {"closed"}
         assert {item["status"] for item in issues.load(root)} == {"closed"}
-    assert calls == [accepted["id"]] * 3
+    assert calls == pair + [accepted["id"]] + pair
     saved = issues.parse((outputs(root) / "visual-notes.md").read_text(encoding="utf-8"))
     assert {item["status"] for item in saved["items"]} == {"closed"}
 
@@ -806,8 +843,10 @@ def test_archived_review_can_be_compared_and_exported_as_an_isolated_copy(work):
 
     compare = reviews.compare(root, manifest, blind["id"])
     reviews.import_report(root, manifest, report(work, compare))
+    # 盲包已封存候选帧；对照包新增唯一参考媒体对象。
+    reference_size = next(compare.glob("style-*.png")).stat().st_size
     compacted = review_blobs.compact(compare)
-    assert compacted["objectBytesAdded"] == 0
+    assert compacted["objectBytesAdded"] == reference_size
     assert ledger.status(root, manifest)["trial"][0]["status"] == "pass"
 
     destination = root / "isolated-review"

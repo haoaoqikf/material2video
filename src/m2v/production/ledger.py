@@ -250,9 +250,13 @@ def binding(root: Path, manifest: dict, request: dict, *, sealed=None) -> dict:
         "media": [media_receipt(item["path"]) for item in request["items"]],
         "references": [media_receipt(p) for p in request.get("references", [])],
     }
-    if request.get("film"):
-        from .film_review import composition_binding
-        value["film"] = composition_binding(root, manifest, request, value["media"], sealed=sealed)
+    from .style_review import selection
+    # 同一只读取证窗口中，两项都须从同一份已验证准备时间轴取场景。
+    with query():
+        if request.get("film"):
+            from .film_review import composition_binding
+            value["film"] = composition_binding(root, manifest, request, value["media"], sealed=sealed)
+        value['style'] = selection(root, manifest, request, value.get('film'))
     return value
 
 

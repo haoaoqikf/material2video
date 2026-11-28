@@ -8,6 +8,7 @@ from pathlib import Path
 
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
+from m2v.core.fingerprints import fingerprint
 from . import ledger
 from .model import VERSION, fields, identifier, text
 from .storage import atomic_text, read, local
@@ -168,6 +169,18 @@ def scope(root, report, *, private=None):
     if film and report.get("verdict") == "fail":
         failed = {item["id"] for item in report["coverage"] if item["status"] == "fail"}
         selected = [item for item in selected if item["id"] in failed]
+    style = private["binding"].get("style")
+    style_scope = {}
+    if style:
+        keys = {k: fingerprint([k, row]) for k, row in style["references"].items()}
+        style_scope = {
+            "styleDigest": style["bindingDigest"],
+            "styleTargets": {
+                item["id"]: {scene: [keys[key] for key in refs]
+                             for scene, refs in style["items"][item["id"]].items()}
+                for item in selected
+            },
+        }
     return {
         "focus": report["focus"],
         "fps": request["fps"],
@@ -175,6 +188,7 @@ def scope(root, report, *, private=None):
         "reviewMode": "process" if request.get("reviewType") == "process" else "blind",
         "displaySizes": sorted(request["displaySizes"]),
         "references": private["binding"]["references"],
+        **style_scope,
         "conditions": request.get("conditions", []),
         "items": [
             {**{k: item[k] for k in ("id", "window", "dynamic")},
@@ -213,8 +227,13 @@ def covers(original, current):
     conditions = ("focus", "purpose", "reviewMode", "fps", "displaySizes", "references", "conditions")
     if any(original[key] != current[key] for key in conditions):
         return False
-    if original.get("film") != current.get("film"):
+    if original.get("styleDigest") != current.get("styleDigest") or original.get("film") != current.get("film"):
         return False
+    for item, scenes in original.get("styleTargets", {}).items():
+        observed = current.get("styleTargets", {}).get(item, {})
+        if any(scene not in observed or not set(refs).issubset(observed[scene])
+               for scene, refs in scenes.items()):
+            return False
     if any(original[key] != current[key] for key in ("sources", "sceneIds")):
         return False
     selected = {item["id"]: item for item in current["items"]}

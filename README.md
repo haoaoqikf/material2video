@@ -71,6 +71,8 @@ pnpm run render
 
 ## 当前能力
 
+`m2v types` 列出每类的默认参考及修订。图文动效采用 IBM 动态排版，数据演化采用 Apple Keynote 演示，三维空间采用 NASA SVS 科学可视化。初始化把参考清单和发布摘要封存在工程的 `design/style-binding.json` 与 `design/style-release.json`。已有工程按本地修订校验；新准备包含绑定文件摘要。
+
 从三类视频中选择起点。三类使用同一套独立工程基础，按作品需要采用场景组件和素材。
 
 <!-- generated:type-catalog:start -->

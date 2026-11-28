@@ -113,8 +113,10 @@ def load_binding(root, project):
         auth = item['authorization']
         _strings(auth, ('quote', 'source', 'at'))
         require(datetime.fromisoformat(auth['at']).utcoffset() is not None, '授权时间缺少时区')
-        require(auth['quote'] in local_path(root, auth['source']).read_text(encoding='utf-8'),
-                '授权原件中找不到登记原话')
+        origin = local_path(root, auth['source'])
+        require(origin.is_file() and not any(origin.samefile(local_path(root, own))
+                                             for own in (BINDING, RELEASE)), '授权须引用独立的工程内原件')
+        require(auth['quote'] in origin.read_text(encoding='utf-8'), '授权原件中找不到登记原话')
         scope = item['scope']
         require(isinstance(scope, dict) and set(scope) == {'scenes', 'uses'}, '覆盖范围无效')
         scenes, uses = scope['scenes'], scope['uses']

@@ -21,7 +21,8 @@ def _structural_cover(original, current):
     from .issues import covers
 
     # 只有参考和中性条件可替换；其余闭环约束复用唯一范围比较。
-    target = {**current, **{key: original[key] for key in ('references', 'conditions')}}
+    target = {**current, 'references': original['references'], 'conditions': original['conditions'],
+              'styleDigest': original.get('styleDigest'), 'styleTargets': original.get('styleTargets', {})}
     return covers(original, target)
 
 
@@ -82,7 +83,7 @@ def register(root: Path, project: dict, request: dict) -> dict:
     for report_id in ids:
         identifier(report_id)
     pack, private = reviews.load_package(root, project, request['packPath'], request['packSha256'])
-    if pack['reviewType'] not in ('blind', 'process') or not private['binding']['references'] or not private['request'].get('conditions'):
+    if pack['reviewType'] not in ('blind', 'process') or not private['binding']['style']['references'] or not private['request'].get('conditions'):
         raise M2VError('目标变更须绑定有实际参考和中性条件的当前盲包或过程对照包')
     selected = {item['reportId']: item for item in issues.load(root, required=True, active_only=True)
                 if item['reportId'] in ids}
@@ -103,7 +104,19 @@ def register(root: Path, project: dict, request: dict) -> dict:
         current, _ = effective_scope(root, item)
         if not _structural_cover(current, new_scope):
             raise M2VError('新目标包不得缩小窗口、改变来源、职责或显示尺寸')
-        if all(current[key] == new_scope[key] for key in ('references', 'conditions')):
+        old_targets = current.get('styleTargets', {})
+        new_targets = new_scope['styleTargets']
+        changed_scenes = {scene for key, scenes in new_targets.items() for scene, refs in scenes.items()
+                          if old_targets.get(key, {}).get(scene) != refs}
+        if current.get('styleDigest') != new_scope.get('styleDigest') or changed_scenes:
+            from m2v.core.style_binding import load_binding
+            affected = changed_scenes or {scene for scenes in new_targets.values() for scene in scenes}
+            changes = load_binding(root, project)['overrides']
+            authorized = [change['scope']['scenes'] for change in changes
+                          if change['authorization']['quote'] == request['instruction']]
+            if 'all' not in authorized and not affected.issubset({s for group in authorized for s in group}):
+                raise M2VError('风格改靶须能追溯到全部受影响场景的已登记用户授权')
+        elif all(current[key] == new_scope[key] for key in ('references', 'conditions')):
             raise M2VError('目标未改变，无需登记替代')
     identity = uuid.uuid4().hex
     value = dict(version=VERSION, id=identity, cycleId=ledger.cycle(root)['cycleId'],
