@@ -46,7 +46,11 @@ def test_recording_workspace_reaps_only_abandoned_owned_directories(tmp_path, mo
             assert not abandoned.exists()
             assert all(item.exists() for item in (parent_alive, worker_alive, recent, unknown, published))
             workspace.register_worker(directory)
-            assert (directory / f".worker-{os.getpid()}").is_file()
+            marker = directory / f".worker-{os.getpid()}"
+            assert marker.is_file()
+            marker.write_text("previous-process-start", encoding="ascii")
+            workspace.register_worker(directory)
+            assert marker.read_text(encoding="ascii") == workspace.process_start(os.getpid())
             raise RuntimeError("capture interrupted")
     assert not directory.exists()
 

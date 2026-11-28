@@ -26,8 +26,12 @@ _WORKER = re.compile(r"\.worker-([1-9][0-9]*)")
 def register_worker(directory: Path) -> None:
     """并行子进程在写中间帧前登记，即使父进程异常退出仍受保护。"""
     if directory.parent.name == _RECORDING_DIRECTORY and _OWNER.fullmatch(directory.name):
-        with (directory / f".worker-{os.getpid()}").open("x", encoding="ascii") as marker:
-            marker.write(process_start(os.getpid()))
+        pid = os.getpid()
+        # 长录制中系统可复用已退出的 PID；按本次启动身份原子替换标记。
+        with tempfile.TemporaryDirectory(dir=directory) as stage:
+            marker = Path(stage) / "identity"
+            marker.write_text(process_start(pid), encoding="ascii")
+            marker.replace(directory / f".worker-{pid}")
 
 
 def _workers_inactive(directory: Path) -> bool:
