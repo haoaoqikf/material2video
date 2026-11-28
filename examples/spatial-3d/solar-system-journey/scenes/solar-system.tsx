@@ -121,7 +121,7 @@ export const SolarSystem = memo(function SolarSystem({textures, shots, look, act
     * (1 - THREE.MathUtils.smoothstep(frame, edgeStart + 90, edgeStart + 138));
   const {startFrame, endFrame} = windows['ceres-line'];
   const ceresFocus = THREE.MathUtils.smoothstep(frame, startFrame - 30, startFrame + 15)
-    * (1 - THREE.MathUtils.smoothstep(frame, endFrame - 12, endFrame + 42));
+    * (1 - THREE.MathUtils.smoothstep(frame, endFrame + 6, endFrame + 38));
   return <SpaceStage look={look} shots={shots} fov={40} background="#02050a"
     starCount={650} starSeed="solar-system">
     <FlightCamera shots={shots} windows={windows} frame={frame} look={look} ceresFocus={ceresFocus}/>

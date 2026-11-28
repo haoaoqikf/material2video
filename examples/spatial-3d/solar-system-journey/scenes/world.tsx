@@ -288,7 +288,7 @@ export function Planet({id, textures, clock, radius = 2.35, detail = true, faceF
     const distance = camera.position.distanceTo(saturnCenter);
     const t = Math.max(0, Math.min(1, (distance - 20) / 18));
     contextGain.value = jovian
-      ? (0.4 + 0.6 * t * t * (3 - 2 * t)) * (1 - 0.72 * ceresFocus)
+      ? (0.4 + 0.6 * t * t * (3 - 2 * t)) * (1 - 0.9 * ceresFocus)
       : ceresFocus;
     const rotation = clock.current.seconds * (id === 'venus' ? -0.018 : 0.026);
     if (sphere.current) {
@@ -338,7 +338,7 @@ export function Planet({id, textures, clock, radius = 2.35, detail = true, faceF
                 .replace('#include <opaque_fragment>', `
                   // 轻微填光保留暗缘上的坑面，并让日照侧仍明显更亮。
                   outgoingLight *= 1.0 + m2vContextGain * 0.8;
-                  outgoingLight += diffuseColor.rgb * (m2vContextGain * 0.12);
+                  outgoingLight += diffuseColor.rgb * (m2vContextGain * 0.16);
                   #include <opaque_fragment>`);
             }
             if (id === 'saturn') saturnShadow(shader, radius, textures.rings);
